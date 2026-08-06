@@ -103,6 +103,33 @@ def pending_approvals(
     return result
 
 
+@router.get("/all")
+def all_inspections(
+    current_user: User = Depends(require_role("supervisor", "admin")),
+    db: Session = Depends(get_db),
+):
+    """Return the full inspection/approval history for admin/supervisor review."""
+    approvals = db.query(Approval).order_by(Approval.created_at.desc()).limit(500).all()
+    result = []
+    for a in approvals:
+        wi = db.query(WorkInstruction).filter(WorkInstruction.id == a.work_instruction_id).first()
+        result.append({
+            "id": a.id,
+            "work_instruction_id": a.work_instruction_id,
+            "work_title": wi.title if wi else "N/A",
+            "wi_number": wi.wi_number if wi else None,
+            "activity": wi.activity if wi else None,
+            "department": wi.department if wi else None,
+            "type": a.type,
+            "status": a.status,
+            "comment": a.comment,
+            "approver_name": a.approver_name,
+            "created_at": a.created_at,
+            "updated_at": a.updated_at,
+        })
+    return result
+
+
 @router.post("/approve")
 def decide_approval(
     data: ApprovalDecision,

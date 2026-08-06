@@ -1,5 +1,5 @@
 import "./globals.css";
-import { AppThemeProvider } from "../components/ThemeProvider";
+import Providers from "./providers";
 import { AuthProvider } from "../context/AuthContext";
 
 export const metadata = {
@@ -10,10 +10,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="emotion-insertion-point" content="emotion-insertion-point" />
+      </head>
       <body className="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <AppThemeProvider>
+        <Providers>
           <AuthProvider>{children}</AuthProvider>
-        </AppThemeProvider>
+        </Providers>
       </body>
     </html>
   );

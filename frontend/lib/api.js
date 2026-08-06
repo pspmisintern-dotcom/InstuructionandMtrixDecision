@@ -61,6 +61,7 @@ export const decisionApi = {
   evaluate: (work, processData) => api.post("/decision/evaluate", { work, process_data: processData }),
   listRules: () => api.get("/decision/rules"),
   createRule: (rule) => api.post("/decision/rules", rule),
+  updateRule: (id, rule) => api.put(`/decision/rules/${id}`, rule),
   deleteRule: (id) => api.delete(`/decision/rules/${id}`),
 };
 
@@ -89,6 +90,7 @@ export const checklistApi = {
 export const inspectionApi = {
   submit: (data) => api.post("/inspection/submit", data),
   pending: () => api.get("/inspection/pending"),
+  all: () => api.get("/inspection/all"),
   approve: (approvalId, status, comment) =>
     api.post("/inspection/approve", { approval_id: approvalId, status, comment }),
 };

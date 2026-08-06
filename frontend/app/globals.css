@@ -3,10 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --industrial-blue: #1e3a8a;
-  --industrial-grey: #374151;
+  --industrial-blue: #1e40af;
+  --industrial-navy: #0b1220;
+  --industrial-grey: #475569;
   --industrial-orange: #f97316;
-  --industrial-green: #16a34a;
+  --industrial-green: #22c55e;
 }
 
 html,

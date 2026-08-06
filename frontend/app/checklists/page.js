@@ -19,9 +19,18 @@ import { FactCheck, Search, ArrowForward } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { workInstructionApi } from "../../lib/api";
 
-const shortenTitle = (title, max = 30) => {
+const cleanTitle = (title) => {
   if (!title) return "Untitled";
-  return title.length > max ? `${title.slice(0, max).trim()}...` : title;
+  let cleaned = (title || "").replace(/(?:Work\s*Instruction\s*(?:for|-|:)?\s*)+/gi, "").trim();
+  cleaned = cleaned.replace(/(?:Operations?\/Work\/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*)+/gi, "").trim();
+  const parts = cleaned.split("|").map(s => s.trim()).filter(Boolean);
+  let res = parts[0] || cleaned;
+  return res.replace(/^(?:Work\s*Instruction\s*(?:for|-|:)?\s*)+/gi, "").trim();
+};
+
+const shortenTitle = (title, max = 40) => {
+  const cleaned = cleanTitle(title);
+  return cleaned.length > max ? `${cleaned.slice(0, max).trim()}...` : cleaned;
 };
 
 export default function ChecklistsPage() {

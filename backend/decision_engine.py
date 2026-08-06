@@ -17,7 +17,7 @@ Example rules (from spec):
 """
 
 import operator
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from backend.models import DecisionRule
 from sqlalchemy.orm import Session
@@ -274,6 +274,145 @@ DEFAULT_RULES = [
         "condition_value": "false",
         "action_type": "block",
         "action_detail": "⚠ Packing condition is damaged. Do not accept; record damage and notify QA.",
+    },
+    # ---- Plasma Spray Rules ----
+    {
+        "name": "Plasma - Gas Pressure Low",
+        "work": "Plasma",
+        "condition_field": "gas_pressure_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "block",
+        "action_detail": "⚠ Plasma gas pressure below specification. Do not start spraying. Check Argon/Hydrogen supply and notify maintenance.",
+    },
+    {
+        "name": "Plasma - Current Out of Range",
+        "work": "Plasma",
+        "condition_field": "current_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "notify",
+        "action_detail": "⚠ Plasma arc current out of range. Adjust to specified parameters and verify with QA.",
+    },
+    {
+        "name": "Plasma - Powder Feed Rate",
+        "work": "Plasma",
+        "condition_field": "powder_feed_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "recommend",
+        "action_detail": "Powder feed rate inconsistent. Clean powder feeder lines and recalibrate feed rate.",
+    },
+    {
+        "name": "Plasma - Substrate Preheating",
+        "work": "Plasma",
+        "condition_field": "preheat_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "block",
+        "action_detail": "⚠ Substrate not preheated to required temperature. Preheat before plasma spraying.",
+    },
+    # ---- HVOF Spray Rules ----
+    {
+        "name": "HVOF - Oxygen Pressure Low",
+        "work": "HVOF",
+        "condition_field": "oxygen_pressure_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "block",
+        "action_detail": "⚠ Oxygen pressure below specification for HVOF. Do not start. Check supply and notify maintenance.",
+    },
+    {
+        "name": "HVOF - Fuel Pressure Low",
+        "work": "HVOF",
+        "condition_field": "fuel_pressure_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "block",
+        "action_detail": "⚠ Fuel (kerosene/propylene) pressure low. Do not start HVOF. Check fuel system and notify maintenance.",
+    },
+    {
+        "name": "HVOF - Combustion Chamber Temp",
+        "work": "HVOF",
+        "condition_field": "combustion_temp_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "notify",
+        "action_detail": "⚠ Combustion chamber temperature out of range. Adjust parameters and monitor closely.",
+    },
+    {
+        "name": "HVOF - Spray Distance",
+        "work": "HVOF",
+        "condition_field": "spray_distance_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "recommend",
+        "action_detail": "Spray distance not within specification. Adjust gun-to-substrate distance to required range.",
+    },
+    # ---- TWAS Spray Rules ----
+    {
+        "name": "TWAS - Wire Feed Mismatch",
+        "work": "TWAS",
+        "condition_field": "wire_feed_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "block",
+        "action_detail": "⚠ Wire feed rate mismatch detected. Do not start TWAS. Check wire spool and feed rollers.",
+    },
+    {
+        "name": "TWAS - Air Pressure Low",
+        "work": "TWAS",
+        "condition_field": "air_pressure_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "block",
+        "action_detail": "⚠ Atomizing air pressure low. Do not start TWAS. Check compressor and air lines.",
+    },
+    {
+        "name": "TWAS - Arc Voltage",
+        "work": "TWAS",
+        "condition_field": "arc_voltage_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "notify",
+        "action_detail": "⚠ Arc voltage out of range. Adjust settings and verify coating quality.",
+    },
+    # ---- Grinding Rules ----
+    {
+        "name": "Grinding - Wheel Speed",
+        "work": "Grinding",
+        "condition_field": "wheel_speed_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "block",
+        "action_detail": "⚠ Grinding wheel speed out of safe range. Do not operate. Check spindle and notify maintenance.",
+    },
+    {
+        "name": "Grinding - Wheel Wear",
+        "work": "Grinding",
+        "condition_field": "wheel_wear_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "recommend",
+        "action_detail": "Grinding wheel worn beyond limit. Replace wheel and dress before continuing.",
+    },
+    {
+        "name": "Grinding - Coolant Level",
+        "work": "Grinding",
+        "condition_field": "coolant_ok",
+        "condition_operator": "==",
+        "condition_value": "false",
+        "action_type": "notify",
+        "action_detail": "⚠ Coolant level low. Refill coolant before continuing grinding operation.",
+    },
+    {
+        "name": "Grinding - Surface Burn",
+        "work": "Grinding",
+        "condition_field": "surface_burn",
+        "condition_operator": "==",
+        "condition_value": "true",
+        "action_type": "block",
+        "action_detail": "⚠ Surface burn detected on component. Stop grinding immediately. Reduce feed rate and notify QA.",
     },
 ]
 

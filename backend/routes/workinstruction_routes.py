@@ -33,6 +33,8 @@ def clean_wi_title(wi: WorkInstruction) -> str:
     name = re.sub(r"^WI[_\- ]?\d+[\s\-]*for\s*", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[\s\-]*", "", name, flags=re.IGNORECASE)
     name = name.replace("_", " ").replace("(", "").replace(")", "")
+    name = re.sub(r"work instruction\s*for\s*", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"work instruction", "", name, flags=re.IGNORECASE)
     name = re.sub(r"\s+", " ", name).strip()
     if name:
         return name.capitalize()

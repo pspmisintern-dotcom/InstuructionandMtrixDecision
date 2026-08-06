@@ -7,7 +7,7 @@ from backend.database import get_db
 from backend.models import User, AuditLog
 from backend.auth import get_current_user
 from backend.ai_assistant import ask_question
-from backend.agent_graph import node_ai_assistant, WorkflowState
+from backend.agent_graph import node_ai_assistant, WorkflowState, run_workflow
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -73,8 +73,7 @@ def run_workflow(req: WorkflowRequest, current_user: User = Depends(get_current_
             "complete": result_state.get("complete", False),
         }
 
-    # Otherwise run the full workflow graph
-    from agent_graph import run_workflow
+    # Run the full workflow graph and return the final state.
     result = run_workflow(state)
     return {
         "state": result,

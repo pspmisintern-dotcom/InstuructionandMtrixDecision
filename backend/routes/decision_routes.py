@@ -26,20 +26,37 @@ class RuleCreate(BaseModel):
     action_detail: str
 
 
+def compute_risk_score(triggered) -> int:
+    """Compute a 0-100 risk score from triggered rule weights."""
+    score = 0
+    for t in triggered:
+        action_type = t.get("action_type", "info")
+        if action_type == "block":
+            score += 35
+        elif action_type == "notify":
+            score += 15
+        elif action_type == "recommend":
+            score += 10
+        else:  # display / info
+            score += 5
+    return min(score, 100)
+
+
 @router.post("/evaluate")
 def evaluate(eval_req: EvaluateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     engine = DecisionEngine(db)
     context = {"work": eval_req.work, **eval_req.process_data}
     triggered = engine.evaluate(context)
+    risk_score = compute_risk_score(triggered)
 
     db.add(AuditLog(
         user_id=current_user.id,
         action="DECISION_EVALUATE",
-        detail=f"Work={eval_req.work} | Decisions: {[t['rule'] for t in triggered]}",
+        detail=f"Work={eval_req.work} | Risk={risk_score} | Decisions: {[t['rule'] for t in triggered]}",
     ))
     db.commit()
 
-    return {"triggered": triggered, "count": len(triggered)}
+    return {"triggered": triggered, "count": len(triggered), "risk_score": risk_score}
 
 
 @router.get("/rules")
@@ -79,6 +96,28 @@ def create_rule(
     db.commit()
     db.refresh(new_rule)
     return {"id": new_rule.id, "message": "Rule created"}
+
+
+@router.put("/rules/{rule_id}")
+def update_rule(
+    rule_id: int,
+    rule: RuleCreate,
+    current_user: User = Depends(require_role("admin", "supervisor")),
+    db: Session = Depends(get_db),
+):
+    existing = db.query(DecisionRule).filter(DecisionRule.id == rule_id).first()
+    if not existing:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    existing.name = rule.name
+    existing.work = rule.work
+    existing.condition_field = rule.condition_field
+    existing.condition_operator = rule.condition_operator
+    existing.condition_value = rule.condition_value
+    existing.action_type = rule.action_type
+    existing.action_detail = rule.action_detail
+    db.commit()
+    db.refresh(existing)
+    return {"id": existing.id, "message": "Rule updated"}
 
 
 @router.delete("/rules/{rule_id}")

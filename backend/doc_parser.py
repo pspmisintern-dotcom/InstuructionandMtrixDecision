@@ -87,16 +87,61 @@ def parse_wi_number(filename: str) -> str:
     return "WI"
 
 
+def normalize_title_fragment(title_fragment: str) -> str:
+    """Normalize repeated title header fragments, Work Instruction prefixes, and pipe-delimited duplicates."""
+    title_fragment = title_fragment.strip()
+    title_fragment = re.sub(
+        r"(?:Work\s*Instruction\s*(?:for|-|:)?\s*)+",
+        "",
+        title_fragment,
+        flags=re.IGNORECASE,
+    ).strip()
+    title_fragment = re.sub(
+        r"(?:Operations?/Work/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*)+",
+        "",
+        title_fragment,
+        flags=re.IGNORECASE,
+    ).strip()
+
+    parts = [part.strip() for part in re.split(r"\s*\|\s*", title_fragment) if part.strip()]
+    seen = []
+    for part in parts:
+        if part.lower() not in [s.lower() for s in seen]:
+            seen.append(part)
+    res = seen[0] if seen else title_fragment
+    res = re.sub(r"^(?:Work\s*Instruction\s*(?:for|-|:)?\s*)+", "", res, flags=re.IGNORECASE).strip()
+    return res
+
+
+def _clean_raw_text(raw_text: str) -> str:
+    """Clean repeated header fragments and duplicate lines from raw extracted text."""
+    cleaned = re.sub(
+        r"(?:Operations?/Work/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*)+",
+        "",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"\s*\|\s*", " | ", cleaned)
+    cleaned_lines = []
+    seen = set()
+    for line in cleaned.splitlines():
+        normalized = re.sub(r"\s+", " ", line).strip().lower()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            cleaned_lines.append(line)
+    return "\n".join(cleaned_lines).strip()
+
+
 def parse_title(raw_text: str, filename: str) -> str:
     """Extract the work/job activity title."""
     # Look for the standard header line
     match = re.search(
-        r"Operations?/Work/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*(.+)",
+        r"Operations?/Work/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*([^\n\r]+)",
         raw_text,
         re.IGNORECASE,
     )
     if match:
-        return match.group(1).strip()
+        return normalize_title_fragment(match.group(1))
     # Fallback: derive from filename
     name = filename
     name = re.sub(r"\.docx?$", "", name, flags=re.IGNORECASE)
@@ -162,6 +207,7 @@ def determine_department(filename: str) -> str:
 def parse_work_instruction(docx_path: str) -> Dict:
     """Parse a single .docx work instruction into a structured dict."""
     raw_text = extract_text_from_docx(docx_path)
+    raw_text = _clean_raw_text(raw_text)
     filename = os.path.basename(docx_path)
 
     result = {
@@ -220,9 +266,9 @@ def parse_work_instruction(docx_path: str) -> Dict:
         if key in section_map:
             result[key] = section_map[key]
 
-    # If no separate scope section, put raw text summary
+    # If no separate scope section, put a concise summary without repeated wording.
     if not result.get("scope"):
-        result["scope"] = f"Work Instruction for {result['title']}."
+        result["scope"] = f"{result['title']} approved procedure and requirements."
 
     # Determine approval requirements
     result["supervisor_approval_required"] = "Approved" in raw_text or "approval" in raw_text.lower()

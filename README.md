@@ -51,8 +51,11 @@ python -m venv .venv
 # source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 python seed.py   # Loads the .docx work instructions into DB + knowledge base
-uvicorn main:app --reload
+cd ..
+uvicorn backend.main:app --reload
 ```
+
+> If you prefer to run from the project root, use `uvicorn backend.main:app --reload`.
 
 #### Frontend
 
@@ -89,7 +92,8 @@ Create `backend/.env` (see `backend/.env.example`):
 ## AI Assistant Behavior
 
 - **With `OPENAI_API_KEY`:** Uses GPT with a LangChain retrieval chain over the FAISS knowledge base (semantic search first, then LLM answer).
-- **Without API key:** Uses an offline deterministic retrieval answer with keyword ranking + HuggingFace MiniLM embeddings for semantic search.
+- **With `LLM_PROVIDER=ollama`:** Uses an Ollama model via LangChain community support, if installed and available.
+- **Without an LLM provider or valid key/server:** Uses an offline deterministic retrieval answer with keyword ranking + HuggingFace MiniLM embeddings for semantic search.
 - The assistant is constrained to only answer from approved Work Instructions. If no match is found, it returns:
   > "This information is not available in the approved Work Instructions. Please contact your Supervisor."
 - Answers always cite the source Work Instruction and section.

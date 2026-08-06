@@ -56,6 +56,7 @@ def _log(state: WorkflowState, action: str, detail: str) -> WorkflowState:
 
 
 def node_select_work(state: WorkflowState) -> WorkflowState:
+    
     state["step"] = "selected"
     return _log(state, "SELECT_WORK", f"Selected work: {state.get('work_title', '')} ({state.get('wi_number', '')})")
 

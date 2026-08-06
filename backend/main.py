@@ -1,9 +1,16 @@
 import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+
+# Ensure the project root is on sys.path so package imports like
+# `from backend.database import ...` work regardless of the current working directory.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)

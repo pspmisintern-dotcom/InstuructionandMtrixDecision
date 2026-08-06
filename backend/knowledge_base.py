@@ -10,6 +10,7 @@ Builds and manages the RAG knowledge base using FAISS and local embeddings.
 """
 
 import os
+import re
 from pathlib import Path
 from typing import List, Optional, Dict
 from dotenv import load_dotenv
@@ -37,7 +38,10 @@ def get_embedding_model():
     if _embedding_model is not None:
         return _embedding_model
 
-    _embedding_model = SentenceTransformer(OPENAI_EMBEDDING_MODEL)
+    try:
+        _embedding_model = SentenceTransformer(OPENAI_EMBEDDING_MODEL)
+    except Exception:
+        _embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
     return _embedding_model
 
 
@@ -134,27 +138,67 @@ def get_vectorstore():
     return _vectorstore
 
 
+def _clean_title_title(title: str) -> str:
+    title = title or ""
+    title = re.sub(
+        r"(?:Operations?/Work/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*)+",
+        "",
+        title,
+        flags=re.IGNORECASE,
+    ).strip()
+    title = re.sub(r"\|+", "|", title)
+    title = re.sub(r"\s*\|\s*", " | ", title).strip()
+    parts = [part.strip() for part in title.split("|") if part.strip()]
+    cleaned = []
+    for part in parts:
+        if part.lower() not in [c.lower() for c in cleaned]:
+            cleaned.append(part)
+    return cleaned[0] if cleaned else title
+
+
+def _clean_combined_text(text: str) -> str:
+    text = text or ""
+    text = re.sub(
+        r"(?:Operations?/Work/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*)+",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\s*\|\s*", " | ", text)
+    cleaned_lines = []
+    seen = set()
+    for line in text.splitlines():
+        normalized = re.sub(r"\s+", " ", line).strip().lower()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            cleaned_lines.append(line)
+    return "\n".join(cleaned_lines).strip()
+
+
 def load_from_db():
     global _vectorstore, _documents
     if _vectorstore is not None:
         return _vectorstore
 
-    from database import SessionLocal
-    from models import WorkInstruction, Section
+    from backend.database import SessionLocal
+    from backend.models import WorkInstruction, Section
 
     db = SessionLocal()
     try:
         wis = db.query(WorkInstruction).filter(WorkInstruction.is_archived == False).all()
         docs: List[dict] = []
         for wi in wis:
+            cleaned_title = _clean_title_title(wi.title)
             base_meta = {
                 "wi_number": wi.wi_number,
-                "title": wi.title,
+                "title": cleaned_title,
                 "revision": wi.revision,
                 "department": wi.department or "",
                 "file_path": wi.file_path or "",
             }
-            combined = f"{wi.title}\n{wi.scope or ''}\n{wi.ppe or ''}\n{wi.procedure or ''}"
+            combined = _clean_combined_text(
+                f"{cleaned_title}\n{wi.scope or ''}\n{wi.ppe or ''}\n{wi.procedure or ''}"
+            )
             docs.append({"page_content": combined, "metadata": dict(base_meta)})
             for sec in wi.sections:
                 meta = dict(base_meta)

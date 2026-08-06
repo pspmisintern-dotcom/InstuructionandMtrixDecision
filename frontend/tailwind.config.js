@@ -9,14 +9,15 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
-      colors: {
+colors: {
         industrial: {
-          blue: "#1e3a8a",
-          grey: "#374151",
+          blue: "#1e40af",
+          navy: "#0b1220",
+          grey: "#475569",
           white: "#ffffff",
           orange: "#f97316",
-          green: "#16a34a",
-          red: "#dc2626",
+          green: "#22c55e",
+          red: "#ef4444",
         },
       },
     },
