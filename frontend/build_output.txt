@@ -1,0 +1,40 @@
+
+> wi-management-frontend@1.0.0 build
+> next build
+
+▲ Next.js 16.3.0 (Turbopack)
+✓ Running next.config.js took 50ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.2s
+  Running TypeScript ...
+  Finished TypeScript in 3ms ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/15) ...
+  Generating static pages using 3 workers (3/15) 
+  Generating static pages using 3 workers (7/15) 
+  Generating static pages using 3 workers (11/15) 
+✓ Generating static pages using 3 workers (15/15) in 1851ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /ai
+├ ○ /audit
+├ ○ /checklists
+├ ○ /dashboard
+├ ○ /decision
+├ ○ /documents
+├ ○ /inspection
+├ ○ /login
+├ ○ /notifications
+├ ○ /reports
+├ ○ /users
+├ ○ /workinstructions
+└ ƒ /workinstructions/[id]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

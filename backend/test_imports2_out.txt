@@ -1,0 +1,11 @@
+OK: numpy
+OK: langchain_core.prompts.PromptTemplate
+OK: langchain_core.documents.Document
+OK: langchain_openai.ChatOpenAI
+OK: langchain_openai.OpenAIEmbeddings
+OK: langchain_classic.chains.RetrievalQA
+FAIL: langchain.chains.combine_documents.create_stuff_documents_chain: ModuleNotFoundError: No module named 'langchain.chains'
+FAIL: langchain.chains.retrieval.create_retrieval_chain: ModuleNotFoundError: No module named 'langchain.chains'
+OK: langchain_community.embeddings.OllamaEmbeddings
+FAIL: sentence_transformers: ModuleNotFoundError: No module named 'sentence_transformers'
+FAIL: langchain_huggingface: ModuleNotFoundError: No module named 'langchain_huggingface'

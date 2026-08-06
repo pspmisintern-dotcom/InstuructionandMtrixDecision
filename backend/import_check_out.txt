@@ -1,0 +1,20 @@
+OK: knowledge_base
+FAIL: decision_engine: No module named 'backend'
+FAIL: agent_graph: No module named 'backend'
+FAIL: ai_assistant: No module named 'backend'
+OK: doc_parser
+OK: qr
+FAIL: routes.auth_routes: No module named 'backend'
+FAIL: routes.dashboard_routes: No module named 'backend'
+FAIL: routes.workinstruction_routes: No module named 'backend'
+FAIL: routes.ai_routes: No module named 'backend'
+FAIL: routes.decision_routes: No module named 'backend'
+FAIL: routes.document_routes: No module named 'backend'
+FAIL: routes.user_routes: No module named 'backend'
+FAIL: routes.checklist_routes: No module named 'backend'
+FAIL: routes.inspection_routes: No module named 'backend'
+FAIL: routes.audit_routes: No module named 'backend'
+FAIL: routes.report_routes: No module named 'backend'
+FAIL: routes.notification_routes: No module named 'backend'
+FAIL: seed: No module named 'backend'
+FAIL: main: No module named 'backend'

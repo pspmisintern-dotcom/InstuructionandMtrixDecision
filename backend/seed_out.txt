@@ -1,0 +1,20 @@
+﻿.venv\Scripts\python.exe : Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher 
+rate limits and faster downloads.
+At line:1 char:150
++ ... e instruction Project"; .venv\Scripts\python.exe seed.py *>&1 | Out-F ...
++                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning: You ar...ster downloads.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[seed] Users seeded.
+[seed] Seeded 10 decision rules.
+[doc_parser] Failed to parse WI_09 for PTA.doc: file 'c:\Users\ADMIIN\Documents\Digitise instruction Project\WI_09 for PTA.doc' is not a Word file, content type is 'application/vnd.openxmlformats-officedocument.themeManager+xml'
+[seed] Parsed 43 work instructions from c:\Users\ADMIIN\Documents\Digitise instruction Project
+[seed] Seeded 43 work instructions into DB.
+[seed] Building RAG knowledge base...
+
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]
+Loading weights: 100%|##########| 103/103 [00:00<00:00, 2285.39it/s]
+[seed] Knowledge base built with 566 document chunks.
+
+[seed] Database seeding complete.

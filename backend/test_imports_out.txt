@@ -1,0 +1,8 @@
+OK: langchain
+OK: langgraph
+OK: faiss
+OK: langgraph.graph.StateGraph
+OK: langchain_community.vectorstores.FAISS
+OK: langchain_core.documents
+FAIL: langchain.text_splitter: ModuleNotFoundError: No module named 'langchain.text_splitter'
+FAIL: RetrievalQA: ModuleNotFoundError: No module named 'langchain.chains'

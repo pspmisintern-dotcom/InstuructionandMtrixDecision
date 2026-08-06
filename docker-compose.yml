@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: wi-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////app/data/wi_system.db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CORS_ORIGINS=http://localhost:3000
+    volumes:
+      - ./backend/data:/app/data
+      - ./Documents:/app/Documents:ro
+    command: >
+      sh -c "python seed.py && uvicorn main:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: wi-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Optional PostgreSQL (uncomment to use instead of SQLite)
+  # db:
+  #   image: postgres:15
+  #   container_name: wi-db
+  #   environment:
+  #     - POSTGRES_USER=wi
+  #     - POSTGRES_PASSWORD=wi_password
+  #     - POSTGRES_DB=wi_system
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   pgdata:
