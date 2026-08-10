@@ -1,0 +1,10 @@
+[project]
+name = "instruction-matrix-backend"
+version = "1.0.0"
+dependencies = [
+    "fastapi",
+    "uvicorn"
+]
+
+[tool.vercel]
+entrypoint = "main:app"
