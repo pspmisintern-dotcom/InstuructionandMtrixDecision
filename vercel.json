@@ -1,25 +1,12 @@
 {
-  "builds": [
-    {
-      "src": "backend/main.py",
-      "use": "@vercel/python",
-      "config": {
-        "excludeFiles": [
-          "**/.venv/**",
-          "**/venv/**",
-          "**/__pycache__/**",
-          "**/node_modules/**",
-          "**/.git/**",
-          "**/*.ipynb",
-          "**/tests/**"
-        ]
-      }
+  "services": {
+    "frontend": {
+      "root": "frontend/",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend/",
+      "entrypoint": "main:app"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend/main.py"
-    }
-  ]
+  }
 }
