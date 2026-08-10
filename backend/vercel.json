@@ -1,0 +1,25 @@
+{
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python",
+      "config": {
+        "excludeFiles": [
+          "**/.venv/**",
+          "**/venv/**",
+          "**/__pycache__/**",
+          "**/node_modules/**",
+          "**/.git/**",
+          "**/*.ipynb",
+          "**/tests/**"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "backend/main.py"
+    }
+  ]
+}
