@@ -22,45 +22,41 @@ import {
   Tooltip,
   Chip,
   Badge,
+  FormControl,
+  Select,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
   Description as DescriptionIcon,
   SmartToy as AIIcon,
-  AccountTree as DecisionIcon,
-  FolderOpen as DocumentIcon,
   People as UsersIcon,
-  CheckCircle as ChecklistIcon,
-  Gavel as InspectionIcon,
   History as AuditIcon,
-  Assessment as ReportsIcon,
   Notifications as NotificationsIcon,
   Logout as LogoutIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
+  Language as LanguageIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { useThemeMode } from "./ThemeProvider";
+import { useLanguage, LANGUAGES } from "../context/LanguageContext";
 import { notificationApi } from "../lib/api";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: <DashboardIcon />, roles: ["admin", "supervisor", "operator"] },
   { label: "Work Instructions", href: "/workinstructions", icon: <DescriptionIcon />, roles: ["admin", "supervisor", "operator"] },
   { label: "AI Assistant", href: "/ai", icon: <AIIcon />, roles: ["admin", "supervisor", "operator"] },
-  { label: "Decision Matrix", href: "/decision", icon: <DecisionIcon />, roles: ["admin", "supervisor", "operator"] },
-  { label: "Documents", href: "/documents", icon: <DocumentIcon />, roles: ["admin"] },
-{ label: "Users", href: "/users", icon: <UsersIcon />, roles: ["admin"] },
-  { label: "Inspection", href: "/inspection", icon: <InspectionIcon />, roles: ["admin", "supervisor", "operator"] },
+  { label: "Users", href: "/users", icon: <UsersIcon />, roles: ["admin"] },
   { label: "Audit Logs", href: "/audit", icon: <AuditIcon />, roles: ["admin", "supervisor"] },
-{ label: "Reports", href: "/reports", icon: <ReportsIcon />, roles: ["admin", "supervisor"] },
 ];
 
 export default function Layout({ children }) {
   const { user, logout, hasRole } = useAuth();
   const { darkMode, toggleDarkMode } = useThemeMode();
+  const { language, setLanguage } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
-const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const loadUnreadCount = async () => {
@@ -109,7 +105,7 @@ const [anchorEl, setAnchorEl] = useState(null);
               WI Manager
             </Typography>
             <Chip
-              label="🟢 System Active • Ollama Connected"
+              label="🟢 System Active"
               size="small"
               sx={{
                 ml: 1.5,
@@ -123,7 +119,29 @@ const [anchorEl, setAnchorEl] = useState(null);
             />
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-<Tooltip title="Notifications">
+            <FormControl size="small" sx={{ minWidth: 160, display: { xs: "none", md: "block" } }}>
+              <Select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                displayEmpty
+                sx={{
+                  color: "#ffffff",
+                  ".MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.3)" },
+                  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.5)" },
+                  ".MuiSvgIcon-root": { color: "#ffffff" },
+                  fontSize: 13,
+                  height: 36,
+                }}
+                startAdornment={<LanguageIcon sx={{ color: "#94a3b8", mr: 0.5, fontSize: 18 }} />}
+              >
+                {LANGUAGES.map((lang) => (
+                  <MenuItem key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="Notifications">
               <IconButton color="inherit" onClick={() => router.push("/notifications")}>
                 <Badge
                   badgeContent={unreadCount}
@@ -211,6 +229,21 @@ const [anchorEl, setAnchorEl] = useState(null);
               </ListItem>
             ))}
           </List>
+          <Box sx={{ px: 2, mt: 2, display: { xs: "block", md: "none" } }}>
+            <FormControl fullWidth size="small">
+              <Select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                sx={{ fontSize: 13 }}
+              >
+                {LANGUAGES.map((lang) => (
+                  <MenuItem key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         </Box>
       </Drawer>
 

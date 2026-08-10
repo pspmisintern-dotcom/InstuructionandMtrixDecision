@@ -57,9 +57,30 @@ def get_current_user(
     return user
 
 
+def require_password_changed(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency that blocks access to any route until the user has changed their
+    one-time password.  Use this on routes that should not be accessible while
+    must_change_password is True (i.e. everything except /auth/change-password).
+
+    Admin users are exempt — they never have must_change_password set.
+    """
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You must change your password before accessing this resource. "
+                "Please call POST /auth/change-password first."
+            ),
+        )
+    return current_user
+
+
 def require_role(*roles: str):
-    """Dependency factory to enforce role-based access."""
-    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+    """Dependency factory to enforce role-based access.
+    Also enforces that the user has already changed their one-time password.
+    """
+    def role_checker(current_user: User = Depends(require_password_changed)) -> User:
         if current_user.role not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -70,8 +91,10 @@ def require_role(*roles: str):
 
 
 def require_min_role(min_role: str):
-    """Allow access if user role >= min_role in hierarchy."""
-    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+    """Allow access if user role >= min_role in hierarchy.
+    Also enforces that the user has already changed their one-time password.
+    """
+    def role_checker(current_user: User = Depends(require_password_changed)) -> User:
         if ROLE_HIERARCHY.get(current_user.role, 0) < ROLE_HIERARCHY.get(min_role, 0):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

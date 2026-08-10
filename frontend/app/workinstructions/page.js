@@ -19,9 +19,11 @@ import {
 import { Search, Description } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { workInstructionApi } from "../../lib/api";
+import { useLanguage, LANGUAGES } from "../../context/LanguageContext";
 
 export default function WorkInstructionsPage() {
   const router = useRouter();
+  const { language, setLanguage, languageLabel } = useLanguage();
   const [wis, setWis] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [search, setSearch] = useState("");
@@ -29,23 +31,27 @@ export default function WorkInstructionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchData = async (lang) => {
+    setLoading(true);
+    setError("");
+    setDepartment("");
+    try {
+      const [wiRes, deptRes] = await Promise.all([
+        workInstructionApi.list({ lang }),
+        workInstructionApi.departments(lang),
+      ]);
+      setWis(wiRes.data);
+      setDepartments(deptRes.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to load work instructions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [wiRes, deptRes] = await Promise.all([
-          workInstructionApi.list(),
-          workInstructionApi.departments(),
-        ]);
-        setWis(wiRes.data);
-        setDepartments(deptRes.data);
-      } catch (err) {
-        setError(err.response?.data?.detail || "Failed to load work instructions");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+    fetchData(language);
+  }, [language]);
 
   const cleanTitle = (title) => {
     if (!title) return "Untitled";
@@ -88,7 +94,7 @@ export default function WorkInstructionsPage() {
               Work Instructions
             </Typography>
             <Typography sx={{ opacity: 0.9 }}>
-              Choose the right procedure and start the approved workflow with confidence.
+              Select a language, then open any instruction to view it as a translated PDF in your browser.
             </Typography>
           </Box>
         </Box>
@@ -114,6 +120,19 @@ export default function WorkInstructionsPage() {
             ),
           }}
         />
+        <TextField
+          select
+          label="View Language"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          sx={{ minWidth: 220 }}
+        >
+          {LANGUAGES.map((lang) => (
+            <MenuItem key={lang.code} value={lang.code}>
+              {lang.label}
+            </MenuItem>
+          ))}
+        </TextField>
         <TextField
           select
           label="Department"

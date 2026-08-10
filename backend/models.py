@@ -17,6 +17,22 @@ class User(Base):
     role = Column(String(50), nullable=False, default="operator")  # admin | supervisor | operator
     department = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True)
+    # Access control fields - admin grants access to operators/supervisors
+    access_granted = Column(Boolean, default=False)  # whether admin has granted current access
+    access_granted_at = Column(DateTime, nullable=True)  # when access was last granted
+    access_expires_at = Column(DateTime, nullable=True)  # when current access expires
+
+    # Access request fields - operator/supervisor requests access from admin
+    access_request_status = Column(String(20), nullable=True)  # None | pending | approved | rejected
+    access_requested_at = Column(DateTime, nullable=True)       # when the request was submitted
+    access_request_reason = Column(Text, nullable=True)         # reason/justification from user
+
+    # One-time password flag - set True when admin issues access, cleared after user changes password
+    must_change_password = Column(Boolean, default=False)
+
+    # Track last login IP address for security auditing
+    last_access_ip = Column(String(45), nullable=True)  # IPv4 or IPv6
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     audit_logs = relationship("AuditLog", back_populates="user")

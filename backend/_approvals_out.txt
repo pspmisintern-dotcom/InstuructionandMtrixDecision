@@ -1,7 +1,0 @@
-APPROVALS START
-Pending approvals found: 2
-  id=1 type=supervisor status=pending wi=1 approver=None
-  id=2 type=supervisor status=pending wi=4 approver=None
-Stale pending approvals marked as 'resolved'.
-Pending approvals after fix: 0
-APPROVALS DONE

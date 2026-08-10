@@ -1,8 +1,0 @@
-VERIFY START
-login status: 200
-GET /reports/types -> 200 {'types': ['operator_compliance', 'ppe_compliance', 'training_status', 'inspection_results', 'ai_usage', 'faq', 'wi_usage', 'revision_history', 'audit
-GET /reports/operator_compliance -> 200 {'report_type': 'operator_compliance', 'generated_at': '2026-08-06T10:30:31.706373', 'data': [{'operator': 'Blasting Operator', 'total_actions': 92, '
-GET /reports/ppe_compliance -> 200 {'report_type': 'ppe_compliance', 'generated_at': '2026-08-06T10:30:31.732102', 'data': {'total_ppe_checks': 0, 'confirmed': 0, 'blocked': 0, 'complia
-GET /reports/inspection_results -> 200 {'report_type': 'inspection_results', 'generated_at': '2026-08-06T10:30:31.770365', 'data': {'total_inspections': 2, 'passed': 1, 'failed': 1, 'approv
-GET /dashboard/summary -> 200 {'total_work_instructions': 42, 'active_operators': 1, 'total_users': 3, 'total_decision_rules': 10, 'pending_approvals': 2, 'pending_qa_approvals': 0, 'pending_supervisor_approvals': 2, 'today_logs': 93, 'today_checklists': 0, 'unread_notifications': 0, 'department_distribution': [{'department': 'L
-VERIFY DONE

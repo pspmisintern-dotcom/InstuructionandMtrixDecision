@@ -10,35 +10,134 @@ from backend.database import get_db
 from backend.models import User, WorkInstruction, Section, AuditLog
 from backend.auth import get_current_user
 from backend.qr import work_instruction_qr
+from backend.pdf_converter import docx_to_translated_pdf, SUPPORTED_LANGUAGES
 
 router = APIRouter(prefix="/workinstructions", tags=["workinstructions"])
 
-# The folder where the original .docx/.doc work instructions are stored.
-# Searches both the project root `data/` and `backend/data/`.
-DATA_DIRS = [
-    Path(__file__).resolve().parents[2] / "data",
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_ROOT = PROJECT_ROOT / "data"
+
+LANGUAGE_FOLDERS = {
+    "en": DATA_ROOT / "English Data",
+    "hi": DATA_ROOT / "HIndi data",
+}
+
+FALLBACK_DATA_DIRS = [
+    DATA_ROOT,
     Path(__file__).resolve().parents[1] / "data",
+    PROJECT_ROOT,
 ]
+
+
+def extract_wi_number_from_pdf(filename: str) -> str:
+    match = re.search(r"(WI[_\- ]?\d+)", filename, re.IGNORECASE)
+    if match:
+        return match.group(1).replace("_", "").replace("-", "").replace(" ", "")
+    return "WI"
+
+
+def extract_title_from_pdf(filename: str, lang: str) -> str:
+    name = re.sub(r"\.pdf$", "", filename, flags=re.IGNORECASE)
+    name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*to[_\s]+", "To ", name, flags=re.IGNORECASE)
+    name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
+    name = name.replace("_", " ").replace("(", "").replace(")", "")
+    name = re.sub(r"\s+", " ", name).strip()
+    return name or "Untitled Work Instruction"
+
+
+def determine_department_from_filename(filename: str) -> str:
+    lower = filename.lower()
+    if any(k in lower for k in ["spray", "blasting", "grinding", "machining", "cutting", "polishing", "mounting", "plasma", "hvof", "twas", "pta", "masking", "sealant"]):
+        return "Spray / Surface Engineering"
+    if any(k in lower for k in ["inward", "outward", "dispatch", "packing", "handling", "stores", "raw material", "powder"]):
+        return "Logistics / Stores"
+    if any(k in lower for k in ["inspection", "calibration", "test", "visual", "microscope", "hardness", "tester", "bend", "evaluation"]):
+        return "Quality"
+    if any(k in lower for k in ["ppe", "chemical", "cleaning", "safety"]):
+        return "Safety / EHS"
+    return "Production"
+
+
+def scan_and_populate_pdfs(db: Session):
+    """Scan language-specific PDF folders and populate WorkInstruction records if DB is empty."""
+    count = db.query(WorkInstruction).count()
+    if count > 0:
+        return
+
+    for lang, folder in LANGUAGE_FOLDERS.items():
+        if not folder.exists():
+            continue
+        for pdf_file in sorted(folder.glob("*.pdf")):
+            wi_number = extract_wi_number_from_pdf(pdf_file.name)
+            title = extract_title_from_pdf(pdf_file.name, lang)
+            department = determine_department_from_filename(pdf_file.name)
+            file_path_key = f"pdf:{lang}:{pdf_file.name}"
+
+            existing = db.query(WorkInstruction).filter(
+                (WorkInstruction.wi_number == wi_number) & (WorkInstruction.file_path == file_path_key)
+            ).first()
+            if existing:
+                continue
+
+            record = WorkInstruction(
+                wi_number=wi_number,
+                title=title,
+                revision="Rev 1",
+                department=department,
+                activity=title,
+                scope=f"{title} - work instruction document ({'English' if lang == 'en' else 'Hindi'} version).",
+                file_path=file_path_key,
+            )
+            db.add(record)
+    db.commit()
+
+
+def resolve_pdf_path(file_path: str, lang: str = "en") -> Optional[Path]:
+    """Resolve a PDF path from a file_path stored in DB like 'pdf:en:WI_06 Plasma Spray.pdf'."""
+    if file_path and file_path.startswith("pdf:"):
+        parts = file_path.split(":", 2)
+        if len(parts) == 3:
+            stored_lang = parts[1]
+            filename = parts[2]
+            target_lang = lang if lang in LANGUAGE_FOLDERS else stored_lang
+            if target_lang in LANGUAGE_FOLDERS:
+                folder = LANGUAGE_FOLDERS[target_lang]
+                candidate = folder / filename
+                if candidate.exists():
+                    return candidate
+            if stored_lang in LANGUAGE_FOLDERS:
+                folder = LANGUAGE_FOLDERS[stored_lang]
+                candidate = folder / filename
+                if candidate.exists():
+                    return candidate
+    return None
 
 
 def clean_wi_title(wi: WorkInstruction) -> str:
     """Return a clean, short, human-readable title for a work instruction."""
-    # Prefer a clean title derived from the source filename (e.g. "WI_01 for Inward.docx" -> "Inward").
+    if wi.file_path and wi.file_path.startswith("pdf:"):
+        parts = wi.file_path.split(":", 2)
+        if len(parts) == 3:
+            lang = parts[1]
+            filename = parts[2]
+            return extract_title_from_pdf(filename, lang)
     if wi.file_path:
         name = Path(wi.file_path).name
     else:
         name = f"{wi.wi_number}.docx"
     name = re.sub(r"\.docx?$", "", name, flags=re.IGNORECASE)
-    # Strip leading WI number tokens
-    name = re.sub(r"^WI[_\- ]?\d+[\s\-]*for\s*", "", name, flags=re.IGNORECASE)
-    name = re.sub(r"^WI[_\- ]?\d+[\s\-]*", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"\.pdf$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
     name = name.replace("_", " ").replace("(", "").replace(")", "")
     name = re.sub(r"work instruction\s*for\s*", "", name, flags=re.IGNORECASE)
     name = re.sub(r"work instruction", "", name, flags=re.IGNORECASE)
     name = re.sub(r"\s+", " ", name).strip()
     if name:
         return name.capitalize()
-    # Fallback to DB title, but collapse any repeated "Operations/Work/..." header repeats.
     title = wi.title or wi.wi_number or "Untitled"
     title = re.sub(r"Operations?/Work/Job\s*Activity\s*covered\s*by\s*this\s*assessment\s*:\s*", "", title, flags=re.IGNORECASE)
     title = re.sub(r"\s+", " ", title).strip()
@@ -46,6 +145,11 @@ def clean_wi_title(wi: WorkInstruction) -> str:
 
 
 def wi_to_dict(wi: WorkInstruction) -> dict:
+    lang = "en"
+    if wi.file_path and wi.file_path.startswith("pdf:"):
+        parts = wi.file_path.split(":", 2)
+        if len(parts) == 3:
+            lang = parts[1]
     return {
         "id": wi.id,
         "wi_number": wi.wi_number,
@@ -74,6 +178,7 @@ def wi_to_dict(wi: WorkInstruction) -> dict:
         "qa_approval_required": wi.qa_approval_required,
         "is_archived": wi.is_archived,
         "is_latest": wi.is_latest,
+        "language": lang,
     }
 
 
@@ -81,9 +186,12 @@ def wi_to_dict(wi: WorkInstruction) -> dict:
 def list_work_instructions(
     q: Optional[str] = Query(None),
     department: Optional[str] = Query(None),
+    lang: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    scan_and_populate_pdfs(db)
+
     query = db.query(WorkInstruction).filter(WorkInstruction.is_archived == False)
     if q:
         query = query.filter(
@@ -93,18 +201,28 @@ def list_work_instructions(
         )
     if department:
         query = query.filter(WorkInstruction.department == department)
+    if lang:
+        pattern = f"pdf:{lang}:%"
+        query = query.filter(WorkInstruction.file_path.like(pattern))
     wis = query.order_by(WorkInstruction.wi_number).all()
     return [wi_to_dict(wi) for wi in wis]
 
 
 @router.get("/departments")
-def list_departments(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    departments = (
+def list_departments(
+    lang: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    scan_and_populate_pdfs(db)
+    query = (
         db.query(WorkInstruction.department)
         .filter(WorkInstruction.department.isnot(None))
-        .distinct()
-        .all()
     )
+    if lang:
+        pattern = f"pdf:{lang}:%"
+        query = query.filter(WorkInstruction.file_path.like(pattern))
+    departments = query.distinct().all()
     return [d[0] for d in departments if d[0]]
 
 
@@ -114,6 +232,7 @@ def get_work_instruction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    scan_and_populate_pdfs(db)
     wi = db.query(WorkInstruction).filter(WorkInstruction.id == wi_id).first()
     if not wi:
         raise HTTPException(status_code=404, detail="Work Instruction not found")
@@ -151,15 +270,18 @@ def get_wi_sections(
     ]
 
 
-def _resolve_document_path(wi: WorkInstruction) -> Optional[Path]:
+def _resolve_document_path(wi: WorkInstruction, lang: str = "en") -> Optional[Path]:
     """Resolve the absolute path to the source document for a work instruction."""
+    pdf_path = resolve_pdf_path(wi.file_path, lang)
+    if pdf_path:
+        return pdf_path
+
     candidates = []
-    if wi.file_path:
+    if wi.file_path and not wi.file_path.startswith("pdf:"):
         candidates.append(Path(wi.file_path))
-    # Fallback: search the project data folders for a file matching the WI number.
     if wi.wi_number:
         num = wi.wi_number.replace("WI", "").strip()
-        for data_dir in DATA_DIRS:
+        for data_dir in FALLBACK_DATA_DIRS:
             if data_dir.exists():
                 for f in data_dir.iterdir():
                     if f.suffix.lower() in (".docx", ".doc") and f.name.lower().startswith(f"wi_{num}"):
@@ -184,10 +306,72 @@ def get_work_instruction_file(
     if not path:
         raise HTTPException(status_code=404, detail="Source document file not found")
 
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        media_type = "application/pdf"
+    elif suffix == ".docx":
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        media_type = "application/msword"
+    return FileResponse(path, media_type=media_type, filename=path.name)
+
+
+@router.get("/languages")
+def list_supported_languages(current_user: User = Depends(get_current_user)):
+    return [{"code": code, "label": label} for code, label in SUPPORTED_LANGUAGES.items()]
+
+
+@router.get("/{wi_id}/pdf")
+def get_work_instruction_pdf(
+    wi_id: int,
+    lang: str = Query("en"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return a PDF for in-browser viewing. Serves pre-made PDFs from language folders, or converts docx."""
+    wi = db.query(WorkInstruction).filter(WorkInstruction.id == wi_id).first()
+    if not wi:
+        raise HTTPException(status_code=404, detail="Work Instruction not found")
+
+    pdf_path = resolve_pdf_path(wi.file_path, lang)
+    if pdf_path:
+        db.add(AuditLog(
+            user_id=current_user.id,
+            work_instruction_id=wi.id,
+            action="VIEW_PDF",
+            detail=f"Viewed PDF ({lang}) for {wi.wi_number}",
+        ))
+        db.commit()
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=pdf_path.name,
+            headers={"Content-Disposition": "inline"},
+        )
+
+    path = _resolve_document_path(wi, lang)
+    if not path:
+        raise HTTPException(status_code=404, detail="Source document file not found in data folder")
+
+    if lang not in SUPPORTED_LANGUAGES:
+        lang = "en"
+
+    try:
+        converted_pdf_path = docx_to_translated_pdf(path, lang, title=clean_wi_title(wi))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
+
+    db.add(AuditLog(
+        user_id=current_user.id,
+        work_instruction_id=wi.id,
+        action="VIEW_PDF",
+        detail=f"Viewed PDF ({lang}) for {wi.wi_number}",
+    ))
+    db.commit()
+
     return FileResponse(
-        path,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        if path.suffix.lower() == ".docx"
-        else "application/msword",
-        filename=path.name,
+        converted_pdf_path,
+        media_type="application/pdf",
+        filename=f"{wi.wi_number}_{lang}.pdf",
+        headers={"Content-Disposition": "inline"},
     )

@@ -55,6 +55,8 @@ def seed_users(db):
     for u in users:
         exists = db.query(User).filter(User.username == u["username"]).first()
         if not exists:
+            # Admin always has access; supervisor/operator need admin to grant access
+            access_granted = u["role"] == "admin"
             db.add(User(
                 username=u["username"],
                 email=u["email"],
@@ -62,6 +64,7 @@ def seed_users(db):
                 hashed_password=hash_password(u["password"]),
                 role=u["role"],
                 department=u["department"],
+                access_granted=access_granted,
             ))
     db.commit()
     print("[seed] Users seeded.")

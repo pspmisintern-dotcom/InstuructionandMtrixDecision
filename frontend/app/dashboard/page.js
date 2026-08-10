@@ -182,7 +182,7 @@ if (loading) {
               Operations Dashboard
             </Typography>
             <Typography variant="subtitle1" sx={{ opacity: 0.85, mt: 0.5, maxWidth: 650 }}>
-              Welcome back, <strong>{user?.full_name || user?.username || "Operator"}</strong>. Real-time control center for digitized procedures, decision matrix status, and AI insights.
+              Welcome back, <strong>{user?.full_name || user?.username || "Operator"}</strong>. Browse digitized work instructions in your preferred language as PDF.
             </Typography>
           </Box>
           <Box sx={{ display: "flex", gap: 1.5 }}>
@@ -239,22 +239,12 @@ if (loading) {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title="Pending Approvals"
-                value={data.pending_approvals}
-                subtitle={`${data.pending_qa_approvals || 0} QA • ${data.pending_supervisor_approvals || 0} Supervisor`}
-                icon={<PendingIcon />}
-                gradient="linear-gradient(135deg, #ea580c 0%, #c2410c 100%)"
-                onClick={() => router.push("/inspection")}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                title="Active Decision Rules"
-                value={data.total_decision_rules || 0}
+                title="Today's Activity"
+                value={data.today_logs || 0}
                 subtitle={`${data.today_checklists || 0} checklist items checked today`}
-                icon={<RuleIcon />}
+                icon={<CheckIcon />}
                 gradient="linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
-                onClick={() => router.push("/decision")}
+                onClick={() => router.push("/audit")}
               />
             </Grid>
           </Grid>
@@ -265,7 +255,7 @@ if (loading) {
               ⚡ Quick Actions
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Button
                   fullWidth
                   variant="outlined"
@@ -276,7 +266,7 @@ if (loading) {
                   View Work Instructions
                 </Button>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Button
                   fullWidth
                   variant="outlined"
@@ -287,26 +277,15 @@ if (loading) {
                   Query AI Assistant
                 </Button>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Button
                   fullWidth
                   variant="outlined"
-                  startIcon={<RuleIcon color="info" />}
-                  onClick={() => router.push("/decision")}
+                  startIcon={<HistoryIcon color="info" />}
+                  onClick={() => router.push("/audit")}
                   sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#cbd5e1", color: "#1e293b", "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" } }}
                 >
-                  Decision Matrix Rules
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<CheckIcon color="success" />}
-                  onClick={() => router.push("/checklists")}
-                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#cbd5e1", color: "#1e293b", "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" } }}
-                >
-                  Digital Checklists
+                  View Audit Logs
                 </Button>
               </Grid>
             </Grid>
@@ -493,15 +472,17 @@ if (loading) {
                   <ListItem key={i} sx={{ px: 0, py: 1, borderBottom: "1px solid", borderColor: "divider" }}>
                     <ListItemText
                       primary={
-                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
                           <Chip
                             label={act.action}
                             size="small"
                             color={act.action === "BLOCKED" ? "error" : act.action === "LOGIN" ? "success" : act.action === "AI_QUESTION" ? "secondary" : "primary"}
-                            sx={{ mr: 1, fontWeight: 700, fontSize: 10 }}
+                            sx={{ fontWeight: 700, fontSize: 10 }}
                           />
-                          {act.detail || "Activity"}
-                        </Typography>
+                          <Typography variant="body2" fontWeight={600} color="text.primary" component="span">
+                            {act.detail || "Activity"}
+                          </Typography>
+                        </Box>
                       }
                       secondary={
                         act.timestamp ? new Date(act.timestamp).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : ""

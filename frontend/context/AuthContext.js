@@ -38,6 +38,16 @@ export function AuthProvider({ children }) {
     return userData;
   };
 
+  const grantAccess = async (userId, durationHours, newPassword) => {
+    const res = await authApi.grantAccess(userId, durationHours, newPassword);
+    return res.data;
+  };
+
+  const revokeAccess = async (userId) => {
+    const res = await authApi.revokeAccess(userId);
+    return res.data;
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -53,7 +63,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole, grantAccess, revokeAccess }}>
       {children}
     </AuthContext.Provider>
   );

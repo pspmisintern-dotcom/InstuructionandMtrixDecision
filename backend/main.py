@@ -22,13 +22,9 @@ from backend.routes import (
     dashboard_routes,
     workinstruction_routes,
     ai_routes,
-    decision_routes,
-    document_routes,
     user_routes,
     checklist_routes,
-    inspection_routes,
     audit_routes,
-    report_routes,
     notification_routes,
 )
 
@@ -48,8 +44,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AI-Powered Digital Work Instruction Management System",
-    description="RAG-powered work instruction management with decision matrix and LangGraph workflow.",
+    title="Digital Work Instruction Management System",
+    description="RAG-powered work instruction management with multilingual PDF viewing.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -67,13 +63,9 @@ app.include_router(auth_routes.router)
 app.include_router(dashboard_routes.router)
 app.include_router(workinstruction_routes.router)
 app.include_router(ai_routes.router)
-app.include_router(decision_routes.router)
-app.include_router(document_routes.router)
 app.include_router(user_routes.router)
 app.include_router(checklist_routes.router)
-app.include_router(inspection_routes.router)
 app.include_router(audit_routes.router)
-app.include_router(report_routes.router)
 app.include_router(notification_routes.router)
 
 

@@ -38,14 +38,23 @@ api.interceptors.response.use(
 export const authApi = {
   login: (username, password) => api.post("/auth/login", { username, password }),
   me: () => api.get("/auth/me"),
+  grantAccess: (userId, durationHours, newPassword) =>
+    api.post("/auth/grant-access", { user_id: userId, duration_hours: durationHours, new_password: newPassword }),
+  revokeAccess: (userId) => api.post("/auth/revoke-access", { user_id: userId }),
 };
 
 export const workInstructionApi = {
   list: (params) => api.get("/workinstructions", { params }),
   get: (id) => api.get(`/workinstructions/${id}`),
-  departments: () => api.get("/workinstructions/departments"),
+  departments: (lang) => api.get("/workinstructions/departments", { params: lang ? { lang } : {} }),
   file: (id) =>
     api.get(`/workinstructions/${id}/file`, { responseType: "blob" }),
+  pdf: (id, lang) =>
+    api.get(`/workinstructions/${id}/pdf`, {
+      params: { lang },
+      responseType: "blob",
+    }),
+  languages: () => api.get("/workinstructions/languages"),
 };
 
 export const dashboardApi = {
@@ -57,27 +66,18 @@ export const aiApi = {
   runWorkflow: (data) => api.post("/ai/workflow", data),
 };
 
-export const decisionApi = {
-  evaluate: (work, processData) => api.post("/decision/evaluate", { work, process_data: processData }),
-  listRules: () => api.get("/decision/rules"),
-  createRule: (rule) => api.post("/decision/rules", rule),
-  updateRule: (id, rule) => api.put(`/decision/rules/${id}`, rule),
-  deleteRule: (id) => api.delete(`/decision/rules/${id}`),
-};
-
-export const documentApi = {
-  list: () => api.get("/documents"),
-  upload: (formData) =>
-    api.post("/documents/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  archive: (id) => api.post(`/documents/${id}/archive`),
-};
-
 export const userApi = {
   list: () => api.get("/users"),
-  create: (data) => api.post("/users", data),
-  update: (id, data) => api.put(`/users/${id}`, data),
+  create: (data) => {
+    const payload = { ...data };
+    delete payload.password;
+    return api.post("/users", payload);
+  },
+  update: (id, data) => {
+    const payload = { ...data };
+    delete payload.password;
+    return api.put(`/users/${id}`, payload);
+  },
   delete: (id) => api.delete(`/users/${id}`),
 };
 
@@ -87,21 +87,8 @@ export const checklistApi = {
   toggle: (itemId, isChecked) => api.put(`/checklists/${itemId}`, null, { params: { is_checked: isChecked } }),
 };
 
-export const inspectionApi = {
-  submit: (data) => api.post("/inspection/submit", data),
-  pending: () => api.get("/inspection/pending"),
-  all: () => api.get("/inspection/all"),
-  approve: (approvalId, status, comment) =>
-    api.post("/inspection/approve", { approval_id: approvalId, status, comment }),
-};
-
 export const auditApi = {
   logs: (params) => api.get("/audit/logs", { params }),
-};
-
-export const reportApi = {
-  types: () => api.get("/reports/types"),
-  generate: (type) => api.get(`/reports/${type}`),
 };
 
 export const notificationApi = {

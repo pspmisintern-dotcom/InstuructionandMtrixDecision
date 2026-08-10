@@ -1,5 +1,0 @@
-FAIL: langchain.schema.Document: ModuleNotFoundError: No module named 'langchain.schema'
-OK: langchain_classic.chains.RetrievalQA
-OK: langchain_community.vectorstores.FAISS
-OK: langchain_text_splitters.RecursiveCharacterTextSplitter
-OK: langchain_core.messages

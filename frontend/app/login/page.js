@@ -31,16 +31,15 @@ import { useAuth } from "../../context/AuthContext";
 
 const demoUsers = [
   { label: "Administrator", username: "admin", password: "admin123", color: "#ef4444", icon: "🔑" },
-  { label: "Supervisor", username: "supervisor", password: "supervisor123", color: "#f59e0b", icon: "👷" },
+  { label: "Supervisor", username: "supervisor", password: "Supervisor 123", color: "#f59e0b", icon: "👷" },
   { label: "Operator", username: "operator", password: "operator123", color: "#22c55e", icon: "🔧" },
 ];
 
 const features = [
   { icon: <Description />, text: "46+ Digital Work Instructions" },
   { icon: <SmartToy />, text: "AI Assistant with Ollama LLM" },
-  { icon: <Analytics />, text: "Decision Matrix Engine" },
-  { icon: <Shield />, text: "Role-Based Access Control" },
-  { icon: <CheckCircle />, text: "Real-time Inspection Reports" },
+  { icon: <Shield />, text: "Multilingual PDF Viewing" },
+  { icon: <CheckCircle />, text: "Role-Based Access Control" },
 ];
 
 export default function LoginPage() {
