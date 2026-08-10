@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "instruction-and-matrix-decision"
+version = "0.1.0"
+description = "Instruction and Matrix Decision project"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+{name = "Deep", email = "[pspmisintern@gmail.com](mailto:pspmisintern@gmail.com)"}
+]
+
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/pspmisintern-dotcom/InstuructionandMtrixDecision"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
