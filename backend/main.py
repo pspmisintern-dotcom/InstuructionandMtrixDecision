@@ -27,15 +27,29 @@ from backend.routes import (
     audit_routes,
     notification_routes,
 )
+app.include_router(auth_routes.router)
+app.include_router(dashboard_routes.router)
+app.include_router(workinstruction_routes.router)
+app.include_router(ai_routes.router)
+app.include_router(user_routes.router)
+app.include_router(checklist_routes.router)
+app.include_router(audit_routes.router)
+app.include_router(notification_routes.router)
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    yield
+    # Create database tables
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("[main] Database tables ready")
+    except Exception as e:
+        print(f"[main] Database initialization failed: {e}")
 
+    # DO NOT load the RAG knowledge base here
+    yield
 
 app = FastAPI(
     title="Digital Work Instruction Management System",
