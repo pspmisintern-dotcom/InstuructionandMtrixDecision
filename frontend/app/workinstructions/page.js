@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Box,
   TextField,
@@ -21,20 +21,20 @@ import Layout from "../../components/Layout";
 import { workInstructionApi } from "../../lib/api";
 import { useLanguage, LANGUAGES } from "../../context/LanguageContext";
 
-export default function WorkInstructionsPage() {
+function WorkInstructionsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { language, setLanguage, languageLabel } = useLanguage();
   const [wis, setWis] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [search, setSearch] = useState("");
-  const [department, setDepartment] = useState("");
+  const [department, setDepartment] = useState(searchParams.get("department") || "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchData = async (lang) => {
     setLoading(true);
     setError("");
-    setDepartment("");
     try {
       const [wiRes, deptRes] = await Promise.all([
         workInstructionApi.list({ lang }),
@@ -194,5 +194,13 @@ export default function WorkInstructionsPage() {
         </Grid>
       )}
     </Layout>
+  );
+}
+
+export default function WorkInstructionsPage() {
+  return (
+    <Suspense fallback={<Layout><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress color="primary" /></Box></Layout>}>
+      <WorkInstructionsContent />
+    </Suspense>
   );
 }

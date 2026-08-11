@@ -193,14 +193,12 @@ def is_heading_line(line: str) -> Optional[str]:
 def determine_department(filename: str) -> str:
     """Infer department from filename keywords."""
     lower = filename.lower()
-    if any(k in lower for k in ["spray", "blasting", "grinding", "machining", "cutting", "polishing", "mounting"]):
-        return "Spray / Surface Engineering"
-    if any(k in lower for k in ["inward", "outward", "dispatch", "packing", "handling"]):
-        return "Logistics / Stores"
-    if any(k in lower for k in ["inspection", "calibration", "test", "visual"]):
-        return "Quality"
-    if any(k in lower for k in ["ppe", "chemical", "cleaning"]):
-        return "Safety / EHS"
+    if any(k in lower for k in ["grind", "abrasive", "wheel", "surface finish", "polish"]):
+        return "Grinding"
+    if any(k in lower for k in ["mask", "tape", "cover", "protect"]):
+        return "Masking"
+    if any(k in lower for k in ["spray", "blasting", "coating", "paint", "thermal", "hvof", "plasma", "twas", "pta"]):
+        return "Spraying"
     return "Production"
 
 

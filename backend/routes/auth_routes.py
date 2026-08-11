@@ -15,6 +15,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 ADMIN_FIXED_USERNAME = "admin"
 ADMIN_FIXED_PASSWORD = "admin123"
+DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
 
 
 def generate_random_password(length: int = 12) -> str:
@@ -121,6 +122,12 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=400,
             detail="Self-registration is only allowed for operator or supervisor roles.",
+        )
+
+    if req.department and req.department not in DEPARTMENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid department. Must be one of: {', '.join(DEPARTMENTS)}",
         )
 
     existing = db.query(User).filter(

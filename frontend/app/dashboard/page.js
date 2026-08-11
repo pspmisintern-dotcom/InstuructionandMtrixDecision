@@ -17,7 +17,7 @@ import {
   Divider,
   Chip,
   Button,
-Avatar,
+  Avatar,
   LinearProgress,
   Tooltip,
   Skeleton,
@@ -40,6 +40,20 @@ import {
 import Layout from "../../components/Layout";
 import { useAuth } from "../../context/AuthContext";
 import { dashboardApi } from "../../lib/api";
+
+const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"];
+
+const DEPARTMENT_COLORS = {
+  Grinding: { gradient: "linear-gradient(90deg, #7c3aed, #a78bfa)", bg: "#f5f3ff" },
+  Masking: { gradient: "linear-gradient(90deg, #f59e0b, #fbbf24)", bg: "#fffbeb" },
+  Spraying: { gradient: "linear-gradient(90deg, #2563eb, #3b82f6)", bg: "#eff6ff" },
+  Production: { gradient: "linear-gradient(90deg, #059669, #10b981)", bg: "#ecfdf5" },
+};
+
+const DEFAULT_DEPARTMENT_BREAKDOWN = DEPARTMENTS.map((dept) => ({
+  department: dept,
+  count: 0,
+}));
 
 const StatCard = ({ title, value, subtitle, icon, gradient, color, onClick }) => (
   <Card
@@ -73,7 +87,7 @@ const StatCard = ({ title, value, subtitle, icon, gradient, color, onClick }) =>
     />
     <CardContent sx={{ p: 3 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Box sx={{ pr: 2 }}>
+        <Box sx={{ pr: 2, minWidth: 0 }}>
           <Typography color="text.secondary" variant="body2" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 12 }}>
             {title}
           </Typography>
@@ -123,7 +137,7 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-if (loading) {
+  if (loading) {
     return (
       <Layout>
         <Box sx={{ minHeight: "70vh" }}>
@@ -148,6 +162,17 @@ if (loading) {
       </Layout>
     );
   }
+
+  const departmentBreakdown = data?.department_distribution?.length
+    ? DEFAULT_DEPARTMENT_BREAKDOWN.map((entry) => {
+        const match = data.department_distribution.find(
+          (d) => d.department === entry.department
+        );
+        return match ? { ...entry, count: match.count } : entry;
+      })
+    : DEFAULT_DEPARTMENT_BREAKDOWN;
+
+  const totalForBreakdown = departmentBreakdown.reduce((sum, d) => sum + d.count, 0) || 1;
 
   return (
     <Layout>
@@ -185,7 +210,7 @@ if (loading) {
               Welcome back, <strong>{user?.full_name || user?.username || "Operator"}</strong>. Browse digitized work instructions in your preferred language as PDF.
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", gap: 1.5 }}>
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
             <Button
               variant="contained"
               color="primary"
@@ -221,7 +246,7 @@ if (loading) {
               <StatCard
                 title="Active Instructions"
                 value={data.total_work_instructions}
-                subtitle={`${data.department_distribution?.length || 0} active departments`}
+                subtitle={`${DEPARTMENTS.length} active departments`}
                 icon={<DescriptionIcon />}
                 gradient="linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"
                 onClick={() => router.push("/workinstructions")}
@@ -247,10 +272,20 @@ if (loading) {
                 onClick={() => router.push("/audit")}
               />
             </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard
+                title="Pending Approvals"
+                value={data.pending_approvals || 0}
+                subtitle={`${data.pending_qa_approvals || 0} QA · ${data.pending_supervisor_approvals || 0} Supervisor`}
+                icon={<PendingIcon />}
+                gradient="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                onClick={() => router.push("/audit")}
+              />
+            </Grid>
           </Grid>
 
           {/* Quick Actions Bar */}
-<Paper sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
+          <Paper sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
             <Typography variant="subtitle2" fontWeight={700} sx={{ color: "text.secondary", mb: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>
               ⚡ Quick Actions
             </Typography>
@@ -291,11 +326,81 @@ if (loading) {
             </Grid>
           </Paper>
 
+          {/* Department Overview Cards */}
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <RuleIcon color="primary" />
+            Department Overview
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 4 }}>
+            {DEPARTMENTS.map((dept) => {
+              const breakdown = departmentBreakdown.find((d) => d.department === dept);
+              const count = breakdown?.count || 0;
+              const pct = Math.round((count / totalForBreakdown) * 100);
+              const colorScheme = DEPARTMENT_COLORS[dept] || DEPARTMENT_COLORS.Production;
+              return (
+                <Grid item xs={12} sm={6} md={3} key={dept}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      bgcolor: "background.paper",
+                      cursor: "pointer",
+                      transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: "0 18px 35px rgba(15, 23, 42, 0.1)",
+                      },
+                    }}
+                    onClick={() => router.push(`/workinstructions?department=${encodeURIComponent(dept)}`)}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                        <Box>
+                          <Typography variant="body1" fontWeight={700} color="text.primary">
+                            {dept}
+                          </Typography>
+                          <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5, color: "text.primary" }}>
+                            {count}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                            Work Instructions
+                          </Typography>
+                        </Box>
+                        <Avatar sx={{ bgcolor: colorScheme.bg, color: "#111827", width: 44, height: 44, fontSize: 18 }}>
+                          {dept[0]}
+                        </Avatar>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={pct}
+                        sx={{
+                          height: 8,
+                          borderRadius: 4,
+                          bgcolor: "#f1f5f9",
+                          "& .MuiLinearProgress-bar": { borderRadius: 4, background: colorScheme.gradient },
+                        }}
+                      />
+                      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {count} WI
+                        </Typography>
+                        <Typography variant="caption" fontWeight={700} color="text.secondary">
+                          {pct}%
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+
           {/* Core Analytics Grid */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             {/* Top Viewed / Featured Instructions */}
             <Grid item xs={12} md={7}>
-<Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(15, 23, 42, 0.03)" }}>
+              <Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(15, 23, 42, 0.03)" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <FolderSpecial color="primary" />
@@ -335,7 +440,7 @@ if (loading) {
                         </Avatar>
                         <ListItemText
                           primary={
-<Typography variant="body1" fontWeight={700} color="text.primary">
+                            <Typography variant="body1" fontWeight={700} color="text.primary">
                               {item.wi_number ? `${item.wi_number} — ` : ""}{item.title}
                             </Typography>
                           }
@@ -353,46 +458,19 @@ if (loading) {
               </Paper>
             </Grid>
 
-            {/* Department Breakdown & System Activity */}
+            {/* System Activity */}
             <Grid item xs={12} md={5}>
-<Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(15, 23, 42, 0.03)" }}>
+              <Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(15, 23, 42, 0.03)" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <TrendingUp color="secondary" />
                   <Typography variant="h6" fontWeight={700} sx={{ color: "text.primary" }}>
-                    Department Distribution
+                    System Activity
                   </Typography>
                 </Box>
                 <Divider sx={{ mb: 2.5 }} />
 
-                {data.department_distribution && data.department_distribution.length > 0 ? (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {data.department_distribution.map((dept, i) => {
-                      const pct = Math.round((dept.count / (data.total_work_instructions || 1)) * 100);
-                      return (
-                        <Box key={i}>
-                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-<Typography variant="body2" fontWeight={600} color="text.primary">
-                              {dept.department}
-                            </Typography>
-                            <Typography variant="caption" fontWeight={700} color="text.secondary">
-                              {dept.count} WI ({pct}%)
-                            </Typography>
-                          </Box>
-                          <LinearProgress
-                            variant="determinate"
-                            value={pct}
-                            sx={{ height: 8, borderRadius: 4, bgcolor: "#f1f5f9", "& .MuiLinearProgress-bar": { borderRadius: 4, background: i % 2 === 0 ? "linear-gradient(90deg, #2563eb, #3b82f6)" : "linear-gradient(90deg, #059669, #10b981)" } }}
-                          />
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                ) : (
-                  <Typography color="text.secondary">No department breakdown available.</Typography>
-                )}
-
-                <Box sx={{ mt: 4 }}>
-<Typography variant="subtitle2" fontWeight={700} sx={{ color: "text.secondary", mb: 1.5, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ color: "text.secondary", mb: 1.5, textTransform: "uppercase", letterSpacing: 0.5 }}>
                     Recent AI Assistant Activity
                   </Typography>
                   {(!data.recent_ai_questions || data.recent_ai_questions.length === 0) ? (
@@ -405,7 +483,7 @@ if (loading) {
                         <ListItem key={i} sx={{ px: 0, py: 0.75 }}>
                           <ListItemText
                             primary={
-<Typography variant="body2" fontWeight={500} noWrap sx={{ color: "text.primary" }}>
+                              <Typography variant="body2" fontWeight={500} noWrap sx={{ color: "text.primary" }}>
                                 💬 {item.detail?.split("| A:")[0]?.replace("Q: ", "") || "AI Question"}
                               </Typography>
                             }
@@ -416,12 +494,46 @@ if (loading) {
                     </List>
                   )}
                 </Box>
+
+                <Divider sx={{ mb: 3 }} />
+
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ color: "text.secondary", mb: 1.5, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Pending Approval Queue
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#fff7ed", border: "1px solid #fed7aa" }}>
+                      <Typography variant="h4" fontWeight={800} sx={{ color: "#ea580c" }}>
+                        {data.pending_qa_approvals || 0}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        QA Approvals
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#fef3c7", border: "1px solid #fde68a" }}>
+                      <Typography variant="h4" fontWeight={800} sx={{ color: "#d97706" }}>
+                        {data.pending_supervisor_approvals || 0}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Supervisor Approvals
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#ecfdf5", border: "1px solid #a7f3d0" }}>
+                      <Typography variant="h4" fontWeight={800} sx={{ color: "#059669" }}>
+                        {data.total_decision_rules || 0}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Active Rules
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
               </Paper>
             </Grid>
           </Grid>
 
           {/* System Notifications Panel */}
-<Paper sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+          <Paper sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <NotifIcon color="warning" />
@@ -451,7 +563,7 @@ if (loading) {
                 ))}
               </Box>
             )}
-</Paper>
+          </Paper>
 
           {/* Recent Activity Feed */}
           <Paper sx={{ p: 3, borderRadius: 3, mt: 3, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>

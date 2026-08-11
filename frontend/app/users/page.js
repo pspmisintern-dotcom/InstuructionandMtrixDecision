@@ -28,6 +28,8 @@ import { Add, Delete, LockOpen, Lock, ContentCopy } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
 
+const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"];
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -344,12 +346,19 @@ export default function UsersPage() {
             <MenuItem value="supervisor">Supervisor</MenuItem>
           </TextField>
           <TextField
+            select
             label="Department"
             fullWidth
             value={form.department}
             onChange={(e) => setForm({ ...form, department: e.target.value })}
             margin="normal"
-          />
+          >
+            {DEPARTMENTS.map((d) => (
+              <MenuItem key={d} value={d}>
+                {d}
+              </MenuItem>
+            ))}
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>

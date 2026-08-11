@@ -9,6 +9,17 @@ from backend.auth import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
+
+# Map legacy department names to the new canonical list
+LEGACY_DEPARTMENT_MAP = {
+    "Spray / Surface Engineering": "Spraying",
+    "Surface Engineering": "Spraying",
+    "Logistics / Stores": "Production",
+    "Quality": "Production",
+    "Safety / EHS": "Production",
+}
+
 
 @router.get("/summary")
 def dashboard_summary(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -31,15 +42,22 @@ def dashboard_summary(current_user: User = Depends(get_current_user), db: Sessio
         Notification.user_id == current_user.id, Notification.is_read == False
     ).count()
 
-    # Department breakdown of work instructions
+    # Department breakdown of work instructions (normalized to canonical departments)
     dept_counts_rows = (
         db.query(WorkInstruction.department, func.count(WorkInstruction.id))
         .filter(WorkInstruction.is_archived == False)
         .group_by(WorkInstruction.department)
         .all()
     )
+    raw_distribution = {}
+    for r in dept_counts_rows:
+        dept = r[0] or "General"
+        dept = LEGACY_DEPARTMENT_MAP.get(dept, dept)
+        raw_distribution[dept] = raw_distribution.get(dept, 0) + r[1]
+
     department_distribution = [
-        {"department": r[0] or "General", "count": r[1]} for r in dept_counts_rows
+        {"department": dept, "count": raw_distribution.get(dept, 0)}
+        for dept in DEPARTMENTS
     ]
 
     # Most viewed work instructions (based on audit logs)

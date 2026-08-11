@@ -12,6 +12,7 @@ from backend.security import hash_password
 router = APIRouter(prefix="/users", tags=["users"])
 
 ADMIN_FIXED_USERNAME = "admin"
+DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
 
 
 def generate_random_password(length: int = 12) -> str:
@@ -104,6 +105,12 @@ def create_user(
         raise HTTPException(
             status_code=400,
             detail="Only operator and supervisor accounts can be created. The admin account is fixed.",
+        )
+
+    if new_user.department and new_user.department not in DEPARTMENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid department. Must be one of: {', '.join(DEPARTMENTS)}",
         )
 
     exists = db.query(User).filter(

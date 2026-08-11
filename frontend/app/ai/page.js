@@ -45,9 +45,16 @@ function renderInlineMarkdown(text) {
   return lines.map((line, idx) => {
     const isBullet = /^[\s]*[-•*]\s+/.test(line);
     const isNumbered = /^[\s]*\d+[.)]\s+/.test(line);
-    const isHeader = /^[A-Za-z\s]{2,}\s*[:：]?$/.test(line.trim()) && line.trim().length < 90 && !isBullet && !isNumbered;
+    const isHeader =
+      /^[A-Za-z\s]{2,}\s*[:：]?$/.test(line.trim()) &&
+      line.trim().length < 90 &&
+      !isBullet &&
+      !isNumbered;
 
-    let content = line.replace(/^[\s]*[-•*]\s+/, "").replace(/^[\s]*\d+[.)]\s+/, "");
+    const numberMatch = line.match(/^[\s]*(\d+[.)])\s+/);
+    const content = line
+      .replace(/^[\s]*[-•*]\s+/, "")
+      .replace(/^[\s]*\d+[.)]\s+/, "");
 
     const parts = [];
     const boldRegex = /\*\*([^*]+)\*\*/g;
@@ -56,7 +63,11 @@ function renderInlineMarkdown(text) {
     let key = 0;
     while ((match = boldRegex.exec(content)) !== null) {
       if (match.index > lastIndex) {
-        parts.push(<span key={`t-${idx}-${key++}`}>{content.slice(lastIndex, match.index)}</span>);
+        parts.push(
+          <span key={`t-${idx}-${key++}`}>
+            {content.slice(lastIndex, match.index)}
+          </span>
+        );
       }
       parts.push(
         <strong key={`b-${idx}-${key++}`} style={{ fontWeight: 700 }}>
@@ -66,47 +77,63 @@ function renderInlineMarkdown(text) {
       lastIndex = match.index + match[0].length;
     }
     if (lastIndex < content.length) {
-      parts.push(<span key={`e-${idx}-${key++}`}>{content.slice(lastIndex)}</span>);
+      parts.push(
+        <span key={`e-${idx}-${key++}`}>{content.slice(lastIndex)}</span>
+      );
     }
 
-    let paddingLeft = 0;
-    let listStyle = null;
     if (isBullet) {
-      paddingLeft = 2.5;
-      listStyle = "disc";
-    } else if (isNumbered) {
-      paddingLeft = 2.5;
+      return (
+        <Box
+          key={idx}
+          sx={{
+            display: "flex",
+            gap: 1,
+            pl: 1,
+            mb: 0.75,
+            lineHeight: 1.6,
+          }}
+        >
+          <span aria-hidden="true">•</span>
+          <span>{parts}</span>
+        </Box>
+      );
     }
 
-    const styledLine = (
+    if (isNumbered) {
+      return (
+        <Box
+          key={idx}
+          sx={{
+            display: "flex",
+            gap: 1,
+            pl: 1,
+            mb: 0.75,
+            lineHeight: 1.6,
+          }}
+        >
+          <span>{numberMatch ? numberMatch[1] : ""}</span>
+          <span>{parts}</span>
+        </Box>
+      );
+    }
+
+    return (
       <Box
         key={idx}
-        component={listStyle ? "li" : isHeader ? "div" : "div"}
         sx={{
-          pl: paddingLeft,
-          mt: idx === 0 ? 0 : 0.25,
-          mb: isHeader ? 0.75 : 0.25,
-          listStyle: listStyle || "none",
-          fontWeight: isHeader ? 800 : 400,
-          fontSize: isHeader ? 15 : 14,
-          color: isHeader ? "primary.main" : "inherit",
-          letterSpacing: isHeader ? "0.2px" : "0",
-          lineHeight: 1.8,
+          mb: 0.75,
+          lineHeight: 1.6,
+          fontWeight: isHeader ? 700 : 400,
         }}
       >
-        {parts.length > 0 ? parts : "\u00A0"}
+        {parts}
       </Box>
     );
-
-    if (isBullet || isNumbered) {
-      return styledLine;
-    }
-    return styledLine;
   });
 }
 
 function AIBubbleMessage({ content, sources, mode, onCopy }) {
-  const isAssistant = true;
   return (
     <Box
       sx={{
@@ -159,26 +186,31 @@ function AIBubbleMessage({ content, sources, mode, onCopy }) {
               height: 20,
               fontSize: 10,
               fontWeight: 700,
-              bgcolor: mode === "offline" ? "#fef9c3" : "#dbeafe",
-              color: mode === "offline" ? "#854d0e" : "#1e40af",
+              bgcolor: mode === "fallback" ? "#fef9c3" : "#dbeafe",
+              color: mode === "fallback" ? "#854d0e" : "#1e40af",
             }}
           />
         </Box>
-        <Box sx={{ pr: 10 }}>
-          {renderInlineMarkdown(content)}
-        </Box>
+        <Box sx={{ pr: 10 }}>{renderInlineMarkdown(content)}</Box>
 
         {sources && sources.length > 0 && (
           <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed #e2e8f0" }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
               <CheckCircle sx={{ color: "#10b981", fontSize: 14 }} />
-              <Typography variant="caption" fontWeight={800} sx={{ color: "#475569", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              <Typography
+                variant="caption"
+                fontWeight={800}
+                sx={{ color: "#475569", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}
+              >
                 Sourced From Approved Work Instructions
               </Typography>
             </Stack>
             <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
               {sources
-                .filter((s, i, arr) => arr.findIndex((x) => x.title === s.title && x.section === s.section) === i)
+                .filter(
+                  (s, i, arr) =>
+                    arr.findIndex((x) => x.title === s.title && x.section === s.section) === i
+                )
                 .slice(0, 6)
                 .map((s, i) => (
                   <Chip
@@ -261,7 +293,6 @@ export default function AIPage() {
   useEffect(() => {
     const recalc = () => {
       if (!containerRef.current || !scrollRef.current) return;
-      const containerRect = containerRef.current.getBoundingClientRect();
       const scrollRect = scrollRef.current.getBoundingClientRect();
       const available = window.innerHeight - scrollRect.top - 100;
       if (available > 200) setScrollAreaHeight(available);
@@ -297,14 +328,11 @@ export default function AIPage() {
 
     try {
       const res = await aiApi.ask(question);
-      let answer = res.data.answer || "No response received.";
+      const answer = res.data.answer || "No response received.";
       const sources = res.data.sources || [];
       const mode = res.data.mode || "ollama";
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: answer, sources, mode },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", content: answer, sources, mode }]);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to contact AI service");
       setMessages((prev) => [
@@ -338,7 +366,6 @@ export default function AIPage() {
   return (
     <Layout>
       <Box ref={containerRef} sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", overflow: "hidden" }}>
-        {/* ===== HEADER BANNER ===== */}
         <Paper
           elevation={0}
           sx={{
@@ -392,7 +419,6 @@ export default function AIPage() {
           </Tooltip>
         </Paper>
 
-        {/* ===== SUGGESTION CHIPS ===== */}
         <Box
           sx={{
             display: "flex",
@@ -453,7 +479,6 @@ export default function AIPage() {
           </Paper>
         )}
 
-        {/* ===== MAIN CHAT AREA - STABLE HEIGHT TO PREVENT MOVING/JITTER ===== */}
         <Paper
           elevation={0}
           sx={{
@@ -468,7 +493,6 @@ export default function AIPage() {
           }}
           style={{ height: scrollAreaHeight }}
         >
-          {/* Scrollable message pane */}
           <Box
             ref={scrollRef}
             sx={{
@@ -541,7 +565,6 @@ export default function AIPage() {
             </List>
           </Box>
 
-          {/* ===== FIXED INPUT BAR ===== */}
           <Divider />
           <Box
             sx={{

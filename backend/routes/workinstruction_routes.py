@@ -14,6 +14,8 @@ from backend.pdf_converter import docx_to_translated_pdf, SUPPORTED_LANGUAGES
 
 router = APIRouter(prefix="/workinstructions", tags=["workinstructions"])
 
+DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = PROJECT_ROOT / "data"
 
@@ -49,14 +51,12 @@ def extract_title_from_pdf(filename: str, lang: str) -> str:
 
 def determine_department_from_filename(filename: str) -> str:
     lower = filename.lower()
-    if any(k in lower for k in ["spray", "blasting", "grinding", "machining", "cutting", "polishing", "mounting", "plasma", "hvof", "twas", "pta", "masking", "sealant"]):
-        return "Spray / Surface Engineering"
-    if any(k in lower for k in ["inward", "outward", "dispatch", "packing", "handling", "stores", "raw material", "powder"]):
-        return "Logistics / Stores"
-    if any(k in lower for k in ["inspection", "calibration", "test", "visual", "microscope", "hardness", "tester", "bend", "evaluation"]):
-        return "Quality"
-    if any(k in lower for k in ["ppe", "chemical", "cleaning", "safety"]):
-        return "Safety / EHS"
+    if any(k in lower for k in ["grind", "abrasive", "wheel", "surface finish", "polish"]):
+        return "Grinding"
+    if any(k in lower for k in ["mask", "tape", "cover", "protect"]):
+        return "Masking"
+    if any(k in lower for k in ["spray", "blasting", "coating", "paint", "thermal", "hvof", "plasma", "twas", "pta"]):
+        return "Spraying"
     return "Production"
 
 
@@ -215,15 +215,7 @@ def list_departments(
     db: Session = Depends(get_db),
 ):
     scan_and_populate_pdfs(db)
-    query = (
-        db.query(WorkInstruction.department)
-        .filter(WorkInstruction.department.isnot(None))
-    )
-    if lang:
-        pattern = f"pdf:{lang}:%"
-        query = query.filter(WorkInstruction.file_path.like(pattern))
-    departments = query.distinct().all()
-    return [d[0] for d in departments if d[0]]
+    return DEPARTMENTS
 
 
 @router.get("/{wi_id}")

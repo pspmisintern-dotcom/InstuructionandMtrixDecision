@@ -17,12 +17,18 @@ from dotenv import load_dotenv
 dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
 
-from database import Base, engine, SessionLocal
-from models import User, WorkInstruction, Section, DecisionRule, AuditLog
-from security import hash_password
-from doc_parser import parse_all_work_instructions
-from knowledge_base import build_documents_from_parsed, build_vectorstore
-from decision_engine import DEFAULT_RULES
+from backend.database import Base, engine, SessionLocal
+from backend.models import (
+    User,
+    WorkInstruction,
+    Section,
+    DecisionRule,
+    AuditLog,
+)
+from backend.security import hash_password
+from backend.doc_parser import parse_all_work_instructions
+from backend.knowledge_base import build_documents_from_parsed, build_vectorstore
+from backend.decision_engine import DEFAULT_RULES
 
 
 def seed_users(db):
@@ -46,10 +52,10 @@ def seed_users(db):
         {
             "username": "operator",
             "email": "operator@company.com",
-            "full_name": "Blasting Operator",
+            "full_name": "Spraying Operator",
             "password": "operator123",
             "role": "operator",
-            "department": "Surface Engineering",
+            "department": "Spraying",
         },
     ]
     for u in users:

@@ -14,7 +14,7 @@ print("Tables created with new schema")
 users = [
     {"username": "admin", "email": "admin@company.com", "full_name": "System Administrator", "password": "admin123", "role": "admin", "department": "IT / Management"},
     {"username": "supervisor", "email": "supervisor@company.com", "full_name": "Production Supervisor", "password": "supervisor123", "role": "supervisor", "department": "Production"},
-    {"username": "operator", "email": "operator@company.com", "full_name": "Blasting Operator", "password": "operator123", "role": "operator", "department": "Surface Engineering"},
+    {"username": "operator", "email": "operator@company.com", "full_name": "Spraying Operator", "password": "operator123", "role": "operator", "department": "Spraying"},
 ]
 
 db = SessionLocal()
