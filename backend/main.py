@@ -16,7 +16,7 @@ dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
 
 from backend.database import Base, engine, SessionLocal
-from backend.knowledge_base import load_from_db
+
 from backend.routes import (
     auth_routes,
     dashboard_routes,
@@ -33,13 +33,7 @@ CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup
     Base.metadata.create_all(bind=engine)
-    # Load the RAG knowledge base from the database
-    try:
-        load_from_db()
-    except Exception as e:
-        print(f"[main] Knowledge base load failed: {e}")
     yield
 
 
