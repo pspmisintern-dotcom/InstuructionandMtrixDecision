@@ -30,6 +30,9 @@ FALLBACK_DATA_DIRS = [
     PROJECT_ROOT,
 ]
 
+# Cache for PDF scan results - only re-scan when folder mtime changes
+_pdf_scan_cache = {"mtime": 0, "data": None}
+
 
 def extract_wi_number_from_pdf(filename: str) -> str:
     match = re.search(r"(WI[_\- ]?\d+)", filename, re.IGNORECASE)
@@ -60,26 +63,48 @@ def determine_department_from_filename(filename: str) -> str:
     return "Production"
 
 
+def _get_folder_mtime() -> float:
+    """Get the latest modification time across all language folders."""
+    latest = 0.0
+    for folder in LANGUAGE_FOLDERS.values():
+        if folder.exists():
+            try:
+                latest = max(latest, folder.stat().st_mtime)
+            except OSError:
+                pass
+    return latest
+
+
 def scan_and_populate_pdfs(db: Session):
-    """Scan language-specific PDF folders and populate WorkInstruction records if DB is empty."""
-    count = db.query(WorkInstruction).count()
-    if count > 0:
+    """Scan language-specific PDF folders and populate WorkInstruction records for any new PDFs.
+    Uses a cache to avoid re-scanning the filesystem on every request — only re-scans
+    when a folder's modification time changes (i.e. a new PDF is added or removed).
+    Uses a single batch query to check existing records for efficiency.
+    """
+    current_mtime = _get_folder_mtime()
+    if current_mtime == _pdf_scan_cache["mtime"] and _pdf_scan_cache["data"] is not None:
+        # Cache is still valid — skip filesystem scan
         return
 
+    # Fetch all existing file_path keys in a single query for efficiency
+    existing_paths = set(
+        row[0] for row in db.query(WorkInstruction.file_path).filter(
+            WorkInstruction.file_path.like("pdf:%")
+        ).all()
+    )
+
+    new_records = []
     for lang, folder in LANGUAGE_FOLDERS.items():
         if not folder.exists():
             continue
         for pdf_file in sorted(folder.glob("*.pdf")):
+            file_path_key = f"pdf:{lang}:{pdf_file.name}"
+            if file_path_key in existing_paths:
+                continue
+
             wi_number = extract_wi_number_from_pdf(pdf_file.name)
             title = extract_title_from_pdf(pdf_file.name, lang)
             department = determine_department_from_filename(pdf_file.name)
-            file_path_key = f"pdf:{lang}:{pdf_file.name}"
-
-            existing = db.query(WorkInstruction).filter(
-                (WorkInstruction.wi_number == wi_number) & (WorkInstruction.file_path == file_path_key)
-            ).first()
-            if existing:
-                continue
 
             record = WorkInstruction(
                 wi_number=wi_number,
@@ -90,8 +115,15 @@ def scan_and_populate_pdfs(db: Session):
                 scope=f"{title} - work instruction document ({'English' if lang == 'en' else 'Hindi'} version).",
                 file_path=file_path_key,
             )
-            db.add(record)
-    db.commit()
+            new_records.append(record)
+
+    if new_records:
+        db.add_all(new_records)
+        db.commit()
+
+    # Update cache
+    _pdf_scan_cache["mtime"] = current_mtime
+    _pdf_scan_cache["data"] = True
 
 
 def resolve_pdf_path(file_path: str, lang: str = "en") -> Optional[Path]:

@@ -24,6 +24,11 @@ import {
   Badge,
   FormControl,
   Select,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
@@ -36,6 +41,7 @@ import {
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
   Language as LanguageIcon,
+  Lock as LockIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { useThemeMode } from "./ThemeProvider";
@@ -58,6 +64,7 @@ export default function Layout({ children }) {
   const pathname = usePathname();
   const [anchorEl, setAnchorEl] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const loadUnreadCount = async () => {
     try {
@@ -75,6 +82,16 @@ export default function Layout({ children }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Check if current path is allowed for the user's role
+  useEffect(() => {
+    if (user && pathname) {
+      const currentItem = navItems.find((item) => pathname.startsWith(item.href));
+      if (currentItem && !hasRole(...currentItem.roles)) {
+        setAccessDenied(true);
+      }
+    }
+  }, [pathname, user]);
+
   const visibleItems = navItems.filter((item) => hasRole(...item.roles));
 
   const handleLogout = () => {
@@ -82,9 +99,14 @@ export default function Layout({ children }) {
     router.push("/login");
   };
 
+  const handleAccessDeniedClose = () => {
+    setAccessDenied(false);
+    router.push("/dashboard");
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <AppBar position="fixed" sx={{ zIndex: 1300, bgcolor: "#0b1220" }}>
+      <AppBar position="fixed" sx={{ zIndex: 1300, bgcolor: "#0D47A1" }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box
@@ -92,7 +114,7 @@ export default function Layout({ children }) {
                 width: 36,
                 height: 36,
                 borderRadius: 2,
-                bgcolor: "primary.main",
+                bgcolor: "#2196F3",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -132,7 +154,7 @@ export default function Layout({ children }) {
                   fontSize: 13,
                   height: 36,
                 }}
-                startAdornment={<LanguageIcon sx={{ color: "#94a3b8", mr: 0.5, fontSize: 18 }} />}
+                startAdornment={<LanguageIcon sx={{ color: "#90CAF9", mr: 0.5, fontSize: 18 }} />}
               >
                 {LANGUAGES.map((lang) => (
                   <MenuItem key={lang.code} value={lang.code}>
@@ -160,7 +182,7 @@ export default function Layout({ children }) {
             </Tooltip>
             <Tooltip title={user?.full_name || "User"}>
               <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", color: "#ffffff" }}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: "#2196F3", color: "#ffffff" }}>
                   {user?.full_name?.[0] || "U"}
                 </Avatar>
               </IconButton>
@@ -188,9 +210,9 @@ export default function Layout({ children }) {
             width: 240,
             boxSizing: "border-box",
             mt: 8,
-            bgcolor: "#0b1220",
-            color: "#94a3b8",
-            borderRight: "1px solid #1e293b",
+            bgcolor: "#0D47A1",
+            color: "#90CAF9",
+            borderRight: "1px solid #1565C0",
           },
         }}
       >
@@ -206,16 +228,16 @@ export default function Layout({ children }) {
                     mx: 1,
                     borderRadius: 2,
                     mb: 0.5,
-                    color: "#94a3b8",
+                    color: "#90CAF9",
                     "&:hover": {
-                      bgcolor: "rgba(30, 64, 175, 0.15)",
+                      bgcolor: "rgba(33, 150, 243, 0.2)",
                       color: "#ffffff",
                     },
                     "&.Mui-selected": {
-                      bgcolor: "primary.main",
+                      bgcolor: "#2196F3",
                       color: "#ffffff",
                       "&:hover": {
-                        bgcolor: "primary.main",
+                        bgcolor: "#2196F3",
                       },
                       "& .MuiListItemIcon-root": {
                         color: "#ffffff",
@@ -234,7 +256,7 @@ export default function Layout({ children }) {
               <Select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                sx={{ fontSize: 13 }}
+                sx={{ fontSize: 13, color: "#ffffff" }}
               >
                 {LANGUAGES.map((lang) => (
                   <MenuItem key={lang.code} value={lang.code}>
@@ -250,6 +272,28 @@ export default function Layout({ children }) {
       <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8, bgcolor: "background.default", minHeight: "100vh" }}>
         {children}
       </Box>
+
+      {/* Access Denied Dialog */}
+      <Dialog
+        open={accessDenied}
+        onClose={handleAccessDeniedClose}
+        aria-labelledby="access-denied-title"
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: "#0D47A1" }}>
+          <LockIcon sx={{ color: "#ef4444" }} />
+          Access Denied
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Access Denied: You do not have permission to access this page or feature.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAccessDeniedClose} color="primary" variant="contained">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

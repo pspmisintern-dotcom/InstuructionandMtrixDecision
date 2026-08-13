@@ -15,8 +15,11 @@ import {
   Paper,
   InputAdornment,
   MenuItem,
+  Button,
+  CardActions,
+  Divider,
 } from "@mui/material";
-import { Search, Description } from "@mui/icons-material";
+import { Search, Description, OpenInNew, Download, Language as LanguageIcon } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { workInstructionApi } from "../../lib/api";
 import { useLanguage, LANGUAGES } from "../../context/LanguageContext";
@@ -67,6 +70,27 @@ function WorkInstructionsContent() {
     return cleaned.length > max ? `${cleaned.slice(0, max).trim()}...` : cleaned;
   };
 
+  const getLanguageLabel = (lang) => {
+    const found = LANGUAGES.find((l) => l.code === lang);
+    return found ? found.label : lang === "en" ? "English" : "Hindi";
+  };
+
+  const handleDownload = async (wi) => {
+    try {
+      const res = await workInstructionApi.pdf(wi.id, language);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${wi.wi_number || "work-instruction"}_${language}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to download PDF");
+    }
+  };
+
   const filtered = wis.filter((wi) => {
     const matchesSearch =
       !search ||
@@ -77,13 +101,13 @@ function WorkInstructionsContent() {
   });
 
   return (
-<Layout>
+    <Layout>
       <Paper
         sx={{
           mb: 3,
           p: 3,
           borderRadius: 3,
-          background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
+          background: "linear-gradient(135deg, #0D47A1 0%, #2196F3 100%)",
           color: "#fff",
         }}
       >
@@ -159,28 +183,53 @@ function WorkInstructionsContent() {
             <Grid item xs={12} sm={6} md={4} key={wi.id}>
               <Card
                 sx={{
-                  cursor: "pointer",
                   height: "100%",
                   bgcolor: "#ffffff",
-                  border: "1px solid #d9e4ff",
-                  boxShadow: "0 10px 30px rgba(15, 57, 108, 0.05)",
+                  border: "1px solid #90CAF9",
+                  boxShadow: "0 10px 30px rgba(13, 71, 161, 0.08)",
                   transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                  "&:hover": { transform: "translateY(-4px)", boxShadow: "0 18px 36px rgba(15, 57, 108, 0.12)" },
+                  display: "flex",
+                  flexDirection: "column",
+                  "&:hover": { transform: "translateY(-4px)", boxShadow: "0 18px 36px rgba(13, 71, 161, 0.15)" },
                 }}
-                onClick={() => router.push(`/workinstructions/${wi.id}`)}
               >
-                <CardContent>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <CardContent sx={{ flex: 1 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
                     <Chip label={wi.wi_number} color="primary" size="small" />
                     <Chip label={wi.revision} size="small" variant="outlined" />
                   </Box>
-                  <Typography variant="h6" fontWeight={600} sx={{ mt: 2, color: "#0f3b6c" }}>
+                  <Typography variant="h6" fontWeight={600} sx={{ mt: 1, color: "#0D47A1", minHeight: 60 }}>
                     {shortenTitle(wi.title)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, minHeight: 42 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5 }}>
+                    <LanguageIcon sx={{ fontSize: 16, color: "#2196F3" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {getLanguageLabel(wi.language || language)}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     {wi.department || "General"}
                   </Typography>
                 </CardContent>
+                <Divider />
+                <CardActions sx={{ p: 1.5, justifyContent: "space-between" }}>
+                  <Button
+                    size="small"
+                    startIcon={<OpenInNew />}
+                    onClick={() => router.push(`/workinstructions/${wi.id}`)}
+                    sx={{ color: "#0D47A1", fontWeight: 700 }}
+                  >
+                    Open
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<Download />}
+                    onClick={() => handleDownload(wi)}
+                    sx={{ color: "#2196F3", fontWeight: 700 }}
+                  >
+                    Download
+                  </Button>
+                </CardActions>
               </Card>
             </Grid>
           ))}

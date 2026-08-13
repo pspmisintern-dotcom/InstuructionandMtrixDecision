@@ -25,7 +25,6 @@ import {
 import {
   Description as DescriptionIcon,
   People as PeopleIcon,
-  PendingActions as PendingIcon,
   CheckCircle as CheckIcon,
   SmartToy as AIIcon,
   Notifications as NotifIcon,
@@ -46,7 +45,7 @@ const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"];
 const DEPARTMENT_COLORS = {
   Grinding: { gradient: "linear-gradient(90deg, #7c3aed, #a78bfa)", bg: "#f5f3ff" },
   Masking: { gradient: "linear-gradient(90deg, #f59e0b, #fbbf24)", bg: "#fffbeb" },
-  Spraying: { gradient: "linear-gradient(90deg, #2563eb, #3b82f6)", bg: "#eff6ff" },
+  Spraying: { gradient: "linear-gradient(90deg, #2196F3, #90CAF9)", bg: "#E3F2FD" },
   Production: { gradient: "linear-gradient(90deg, #059669, #10b981)", bg: "#ecfdf5" },
 };
 
@@ -64,12 +63,12 @@ const StatCard = ({ title, value, subtitle, icon, gradient, color, onClick }) =>
       border: "1px solid",
       borderColor: "divider",
       background: "background.paper",
-      boxShadow: "0 10px 25px rgba(15, 23, 42, 0.04)",
+      boxShadow: "0 10px 25px rgba(13, 71, 161, 0.06)",
       transition: "transform 0.25s ease, box-shadow 0.25s ease",
       cursor: onClick ? "pointer" : "default",
       "&:hover": {
         transform: "translateY(-4px)",
-        boxShadow: "0 18px 35px rgba(15, 23, 42, 0.1)",
+        boxShadow: "0 18px 35px rgba(13, 71, 161, 0.12)",
       },
       position: "relative",
       overflow: "hidden",
@@ -182,9 +181,9 @@ export default function DashboardPage() {
           mb: 4,
           p: { xs: 3, md: 4 },
           borderRadius: 4,
-          background: "linear-gradient(135deg, #0b1220 0%, #1e293b 50%, #1e3a8a 100%)",
+          background: "linear-gradient(135deg, #0D47A1 0%, #1565C0 50%, #2196F3 100%)",
           color: "#ffffff",
-          boxShadow: "0 20px 40px rgba(15, 23, 42, 0.15)",
+          boxShadow: "0 20px 40px rgba(13, 71, 161, 0.2)",
           position: "relative",
           overflow: "hidden",
         }}
@@ -195,7 +194,7 @@ export default function DashboardPage() {
               <Chip
                 label="LIVE SYSTEM CONTROL"
                 size="small"
-                sx={{ bgcolor: "rgba(59, 130, 246, 0.25)", color: "#60a5fa", fontWeight: 700, fontSize: 11 }}
+                sx={{ bgcolor: "rgba(144, 202, 249, 0.25)", color: "#E3F2FD", fontWeight: 700, fontSize: 11 }}
               />
               <Chip
                 label={`Role: ${user?.role?.toUpperCase() || "OPERATOR"}`}
@@ -206,7 +205,7 @@ export default function DashboardPage() {
             <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: "-0.5px" }}>
               Operations Dashboard
             </Typography>
-            <Typography variant="subtitle1" sx={{ opacity: 0.85, mt: 0.5, maxWidth: 650 }}>
+            <Typography variant="subtitle1" sx={{ opacity: 0.9, mt: 0.5, maxWidth: 650 }}>
               Welcome back, <strong>{user?.full_name || user?.username || "Operator"}</strong>. Browse digitized work instructions in your preferred language as PDF.
             </Typography>
           </Box>
@@ -216,7 +215,7 @@ export default function DashboardPage() {
               color="primary"
               startIcon={<DescriptionIcon />}
               onClick={() => router.push("/workinstructions")}
-              sx={{ px: 3, py: 1.2, fontWeight: 700, textTransform: "none", borderRadius: 2.5 }}
+              sx={{ px: 3, py: 1.2, fontWeight: 700, textTransform: "none", borderRadius: 2.5, bgcolor: "#ffffff", color: "#0D47A1", "&:hover": { bgcolor: "#E3F2FD" } }}
             >
               Work Instructions
             </Button>
@@ -248,7 +247,7 @@ export default function DashboardPage() {
                 value={data.total_work_instructions}
                 subtitle={`${DEPARTMENTS.length} active departments`}
                 icon={<DescriptionIcon />}
-                gradient="linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"
+                gradient="linear-gradient(135deg, #2196F3 0%, #0D47A1 100%)"
                 onClick={() => router.push("/workinstructions")}
               />
             </Grid>
@@ -272,16 +271,6 @@ export default function DashboardPage() {
                 onClick={() => router.push("/audit")}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                title="Pending Approvals"
-                value={data.pending_approvals || 0}
-                subtitle={`${data.pending_qa_approvals || 0} QA · ${data.pending_supervisor_approvals || 0} Supervisor`}
-                icon={<PendingIcon />}
-                gradient="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
-                onClick={() => router.push("/audit")}
-              />
-            </Grid>
           </Grid>
 
           {/* Quick Actions Bar */}
@@ -296,7 +285,7 @@ export default function DashboardPage() {
                   variant="outlined"
                   startIcon={<PlayCircleFilled color="primary" />}
                   onClick={() => router.push("/workinstructions")}
-                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#cbd5e1", color: "#1e293b", "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" } }}
+                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#90CAF9", color: "#0D47A1", "&:hover": { bgcolor: "#E3F2FD", borderColor: "#2196F3" } }}
                 >
                   View Work Instructions
                 </Button>
@@ -307,7 +296,7 @@ export default function DashboardPage() {
                   variant="outlined"
                   startIcon={<AIIcon color="secondary" />}
                   onClick={() => router.push("/ai")}
-                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#cbd5e1", color: "#1e293b", "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" } }}
+                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#90CAF9", color: "#0D47A1", "&:hover": { bgcolor: "#E3F2FD", borderColor: "#2196F3" } }}
                 >
                   Query AI Assistant
                 </Button>
@@ -318,7 +307,7 @@ export default function DashboardPage() {
                   variant="outlined"
                   startIcon={<HistoryIcon color="info" />}
                   onClick={() => router.push("/audit")}
-                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#cbd5e1", color: "#1e293b", "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" } }}
+                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#90CAF9", color: "#0D47A1", "&:hover": { bgcolor: "#E3F2FD", borderColor: "#2196F3" } }}
                 >
                   View Audit Logs
                 </Button>
@@ -327,7 +316,7 @@ export default function DashboardPage() {
           </Paper>
 
           {/* Department Overview Cards */}
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "#0D47A1" }}>
             <RuleIcon color="primary" />
             Department Overview
           </Typography>
@@ -349,7 +338,7 @@ export default function DashboardPage() {
                       transition: "transform 0.25s ease, box-shadow 0.25s ease",
                       "&:hover": {
                         transform: "translateY(-4px)",
-                        boxShadow: "0 18px 35px rgba(15, 23, 42, 0.1)",
+                        boxShadow: "0 18px 35px rgba(13, 71, 161, 0.12)",
                       },
                     }}
                     onClick={() => router.push(`/workinstructions?department=${encodeURIComponent(dept)}`)}
@@ -367,7 +356,7 @@ export default function DashboardPage() {
                             Work Instructions
                           </Typography>
                         </Box>
-                        <Avatar sx={{ bgcolor: colorScheme.bg, color: "#111827", width: 44, height: 44, fontSize: 18 }}>
+                        <Avatar sx={{ bgcolor: colorScheme.bg, color: "#0D47A1", width: 44, height: 44, fontSize: 18 }}>
                           {dept[0]}
                         </Avatar>
                       </Box>
@@ -377,7 +366,7 @@ export default function DashboardPage() {
                         sx={{
                           height: 8,
                           borderRadius: 4,
-                          bgcolor: "#f1f5f9",
+                          bgcolor: "#E3F2FD",
                           "& .MuiLinearProgress-bar": { borderRadius: 4, background: colorScheme.gradient },
                         }}
                       />
@@ -400,7 +389,7 @@ export default function DashboardPage() {
           <Grid container spacing={3} sx={{ mb: 4 }}>
             {/* Top Viewed / Featured Instructions */}
             <Grid item xs={12} md={7}>
-              <Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(15, 23, 42, 0.03)" }}>
+              <Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(13, 71, 161, 0.05)" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <FolderSpecial color="primary" />
@@ -427,15 +416,15 @@ export default function DashboardPage() {
                           py: 1.5,
                           mb: 1.5,
                           borderRadius: 2,
-                          bgcolor: "#f8fafc",
-                          border: "1px solid #f1f5f9",
+                          bgcolor: "#E3F2FD",
+                          border: "1px solid #90CAF9",
                           cursor: "pointer",
                           transition: "all 0.2s ease",
-                          "&:hover": { bgcolor: "#eff6ff", borderColor: "#bfdbfe" },
+                          "&:hover": { bgcolor: "#90CAF9", borderColor: "#2196F3" },
                         }}
                         onClick={() => router.push(item.id ? `/workinstructions/${item.id}` : "/workinstructions")}
                       >
-                        <Avatar sx={{ bgcolor: "#2563eb", width: 32, height: 32, fontSize: 13, fontWeight: 700, mr: 2 }}>
+                        <Avatar sx={{ bgcolor: "#2196F3", width: 32, height: 32, fontSize: 13, fontWeight: 700, mr: 2 }}>
                           {idx + 1}
                         </Avatar>
                         <ListItemText
@@ -460,7 +449,7 @@ export default function DashboardPage() {
 
             {/* System Activity */}
             <Grid item xs={12} md={5}>
-              <Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(15, 23, 42, 0.03)" }}>
+              <Paper sx={{ p: 3, borderRadius: 3, height: "100%", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", boxShadow: "0 10px 25px rgba(13, 71, 161, 0.05)" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <TrendingUp color="secondary" />
                   <Typography variant="h6" fontWeight={700} sx={{ color: "text.primary" }}>
@@ -499,31 +488,23 @@ export default function DashboardPage() {
 
                 <Box>
                   <Typography variant="subtitle2" fontWeight={700} sx={{ color: "text.secondary", mb: 1.5, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                    Pending Approval Queue
+                    System Overview
                   </Typography>
                   <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#fff7ed", border: "1px solid #fed7aa" }}>
-                      <Typography variant="h4" fontWeight={800} sx={{ color: "#ea580c" }}>
-                        {data.pending_qa_approvals || 0}
+                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#E3F2FD", border: "1px solid #90CAF9" }}>
+                      <Typography variant="h4" fontWeight={800} sx={{ color: "#0D47A1" }}>
+                        {data.total_work_instructions || 0}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        QA Approvals
+                        Total WIs
                       </Typography>
                     </Box>
-                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#fef3c7", border: "1px solid #fde68a" }}>
-                      <Typography variant="h4" fontWeight={800} sx={{ color: "#d97706" }}>
-                        {data.pending_supervisor_approvals || 0}
+                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#E3F2FD", border: "1px solid #90CAF9" }}>
+                      <Typography variant="h4" fontWeight={800} sx={{ color: "#0D47A1" }}>
+                        {data.total_users || 0}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        Supervisor Approvals
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#ecfdf5", border: "1px solid #a7f3d0" }}>
-                      <Typography variant="h4" fontWeight={800} sx={{ color: "#059669" }}>
-                        {data.total_decision_rules || 0}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        Active Rules
+                        Total Users
                       </Typography>
                     </Box>
                   </Box>
@@ -537,7 +518,7 @@ export default function DashboardPage() {
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <NotifIcon color="warning" />
-                <Typography variant="h6" fontWeight={700}>
+                <Typography variant="h6" fontWeight={700} sx={{ color: "#0D47A1" }}>
                   System Notifications & Alerts
                 </Typography>
               </Box>
@@ -569,7 +550,7 @@ export default function DashboardPage() {
           <Paper sx={{ p: 3, borderRadius: 3, mt: 3, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
               <HistoryIcon color="primary" />
-              <Typography variant="h6" fontWeight={700}>
+              <Typography variant="h6" fontWeight={700} sx={{ color: "#0D47A1" }}>
                 Recent System Activity
               </Typography>
             </Box>

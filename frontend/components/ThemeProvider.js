@@ -43,25 +43,25 @@ export function AppThemeProvider({ children }) {
       createTheme({
         palette: {
           mode: darkMode ? "dark" : "light",
-          primary: { main: "#1e40af", light: "#3b82f6", dark: "#172e6b" },
-          secondary: { main: "#ffffff", contrastText: "#1e40af" },
-          info: { main: "#3b82f6" },
+          primary: { main: "#2196F3", light: "#90CAF9", dark: "#0D47A1" },
+          secondary: { main: "#90CAF9", contrastText: "#0D47A1" },
+          info: { main: "#2196F3" },
           success: { main: "#22c55e" },
           error: { main: "#ef4444" },
           warning: { main: "#f59e0b" },
           background: {
-            default: darkMode ? "#0b1220" : "#f4f7fb",
-            paper: darkMode ? "#111c33" : "#ffffff",
+            default: darkMode ? "#0D1B2A" : "#E3F2FD",
+            paper: darkMode ? "#12263A" : "#ffffff",
           },
           text: {
-            primary: darkMode ? "#e2e8f0" : "#0f172a",
-            secondary: darkMode ? "#94a3b8" : "#475569",
+            primary: darkMode ? "#E3F2FD" : "#0D47A1",
+            secondary: darkMode ? "#90CAF9" : "#1565C0",
           },
         },
         typography: {
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         },
-shape: {
+        shape: {
           borderRadius: 10,
         },
         components: {
@@ -83,12 +83,12 @@ shape: {
           MuiTableCell: {
             styleOverrides: {
               root: {
-                borderBottom: `1px solid ${darkMode ? "#1e293b" : "#e2e8f0"}`,
+                borderBottom: `1px solid ${darkMode ? "#1e3a5f" : "#E3F2FD"}`,
               },
               head: {
                 fontWeight: 700,
-                backgroundColor: darkMode ? "#0f1a30" : "#f8fafc",
-                color: darkMode ? "#e2e8f0" : "#0f172a",
+                backgroundColor: darkMode ? "#0D1B2A" : "#E3F2FD",
+                color: darkMode ? "#E3F2FD" : "#0D47A1",
               },
             },
           },
@@ -96,7 +96,7 @@ shape: {
             styleOverrides: {
               root: {
                 "&:hover": {
-                  backgroundColor: darkMode ? "#16233f" : "#f8fafc",
+                  backgroundColor: darkMode ? "#16233F" : "#E3F2FD",
                 },
               },
             },
@@ -104,8 +104,8 @@ shape: {
           MuiChip: {
             styleOverrides: {
               root: {
-                backgroundColor: darkMode ? "#1e293b" : "#f1f5f9",
-                color: darkMode ? "#e2e8f0" : "#334155",
+                backgroundColor: darkMode ? "#1e3a5f" : "#E3F2FD",
+                color: darkMode ? "#E3F2FD" : "#0D47A1",
               },
               outlined: {
                 backgroundColor: "transparent",
@@ -116,7 +116,7 @@ shape: {
             styleOverrides: {
               root: {
                 "& .MuiOutlinedInput-root": {
-                  backgroundColor: darkMode ? "#111c33" : "#ffffff",
+                  backgroundColor: darkMode ? "#12263A" : "#ffffff",
                 },
               },
             },
@@ -124,29 +124,29 @@ shape: {
           MuiInputBase: {
             styleOverrides: {
               root: {
-                color: darkMode ? "#e2e8f0" : "#0f172a",
+                color: darkMode ? "#E3F2FD" : "#0D47A1",
               },
             },
           },
           MuiAlert: {
             styleOverrides: {
               root: {
-                backgroundColor: darkMode ? "#1e293b" : undefined,
-                color: darkMode ? "#e2e8f0" : undefined,
+                backgroundColor: darkMode ? "#1e3a5f" : undefined,
+                color: darkMode ? "#E3F2FD" : undefined,
               },
             },
           },
           MuiDivider: {
             styleOverrides: {
               root: {
-                borderColor: darkMode ? "#1e293b" : "#e2e8f0",
+                borderColor: darkMode ? "#1e3a5f" : "#E3F2FD",
               },
             },
           },
           MuiDialog: {
             styleOverrides: {
               paper: {
-                backgroundColor: darkMode ? "#111c33" : "#ffffff",
+                backgroundColor: darkMode ? "#12263A" : "#ffffff",
                 backgroundImage: "none",
               },
             },
@@ -154,7 +154,7 @@ shape: {
           MuiMenu: {
             styleOverrides: {
               paper: {
-                backgroundColor: darkMode ? "#111c33" : "#ffffff",
+                backgroundColor: darkMode ? "#12263A" : "#ffffff",
                 backgroundImage: "none",
               },
             },
@@ -163,7 +163,7 @@ shape: {
             styleOverrides: {
               root: {
                 "&:hover": {
-                  backgroundColor: darkMode ? "#16233f" : "#f8fafc",
+                  backgroundColor: darkMode ? "#16233F" : "#E3F2FD",
                 },
               },
             },

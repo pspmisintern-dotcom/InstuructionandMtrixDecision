@@ -2,19 +2,21 @@ version: "3.8"
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: wi-backend
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:////app/data/wi_system.db
+      - DATABASE_URL=sqlite:////app/backend/data/wi_system.db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - CORS_ORIGINS=http://localhost:3000
     volumes:
-      - ./backend/data:/app/data
+      - ./backend/data:/app/backend/data
       - ./Documents:/app/Documents:ro
     command: >
-      sh -c "python seed.py && uvicorn main:app --host 0.0.0.0 --port 8000"
+      sh -c "python backend/seed.py && uvicorn backend.main:app --host 0.0.0.0 --port 8000"
     restart: unless-stopped
 
   frontend:

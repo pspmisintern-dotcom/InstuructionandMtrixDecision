@@ -30,9 +30,9 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 const demoUsers = [
-  { label: "Administrator", username: "admin", password: "admin123", color: "#ef4444", icon: "🔑" },
-  { label: "Supervisor", username: "supervisor", password: "Supervisor 123", color: "#f59e0b", icon: "👷" },
-  { label: "Operator", username: "operator", password: "operator123", color: "#22c55e", icon: "🔧" },
+  { label: "Administrator", username: "admin", password: "admin123", color: "#0D47A1", icon: "🔑" },
+  { label: "Supervisor", username: "supervisor", password: "Supervisor 123", color: "#2196F3", icon: "👷" },
+  { label: "Operator", username: "operator", password: "operator123", color: "#90CAF9", icon: "🔧" },
 ];
 
 const features = [
@@ -79,7 +79,7 @@ export default function LoginPage() {
       sx={{
         minHeight: "100vh",
         display: "flex",
-        bgcolor: "#0b1220",
+        bgcolor: "#E3F2FD",
       }}
     >
       {/* Left Panel - Branding */}
@@ -91,7 +91,7 @@ export default function LoginPage() {
           justifyContent: "center",
           alignItems: "center",
           px: 6,
-          background: "linear-gradient(145deg, #0b1220 0%, #1e3a8a 50%, #172554 100%)",
+          background: "linear-gradient(145deg, #0D47A1 0%, #1565C0 50%, #2196F3 100%)",
           position: "relative",
           overflow: "hidden",
         }}
@@ -99,13 +99,13 @@ export default function LoginPage() {
         {/* Animated glow orbs */}
         <Box sx={{
           position: "absolute", width: 400, height: 400, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(144,202,249,0.15) 0%, transparent 70%)",
           top: "10%", left: "-10%", animation: "pulse 4s ease-in-out infinite",
           "@keyframes pulse": { "0%,100%": { transform: "scale(1)", opacity: 0.7 }, "50%": { transform: "scale(1.1)", opacity: 1 } }
         }} />
         <Box sx={{
           position: "absolute", width: 300, height: 300, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(144,202,249,0.12) 0%, transparent 70%)",
           bottom: "15%", right: "-5%", animation: "pulse 5s ease-in-out infinite 1s",
         }} />
 
@@ -113,10 +113,10 @@ export default function LoginPage() {
           {/* Logo */}
           <Box sx={{
             width: 80, height: 80, borderRadius: 4,
-            background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+            background: "linear-gradient(135deg, #2196F3 0%, #0D47A1 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             mx: "auto", mb: 3, fontSize: 36,
-            boxShadow: "0 20px 60px rgba(59,130,246,0.4)",
+            boxShadow: "0 20px 60px rgba(33, 150, 243, 0.4)",
           }}>
             🏭
           </Box>
@@ -124,13 +124,13 @@ export default function LoginPage() {
           <Typography variant="h3" fontWeight={800} color="#ffffff" sx={{ mb: 1, letterSpacing: "-0.5px" }}>
             WI Manager
           </Typography>
-          <Typography variant="h6" sx={{ color: "#93c5fd", mb: 1, fontWeight: 400 }}>
+          <Typography variant="h6" sx={{ color: "#E3F2FD", mb: 1, fontWeight: 400 }}>
             Digital Manufacturing Platform
           </Typography>
           <Chip
             label="v2.0 — Powered by Ollama AI"
             size="small"
-            sx={{ bgcolor: "rgba(59,130,246,0.2)", color: "#93c5fd", fontWeight: 600, mb: 4, border: "1px solid rgba(59,130,246,0.3)" }}
+            sx={{ bgcolor: "rgba(144,202,249,0.2)", color: "#E3F2FD", fontWeight: 600, mb: 4, border: "1px solid rgba(144,202,249,0.3)" }}
           />
 
           <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", mb: 4 }} />
@@ -139,13 +139,13 @@ export default function LoginPage() {
             {features.map((f, i) => (
               <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Box sx={{
-                  width: 36, height: 36, borderRadius: 2, bgcolor: "rgba(59,130,246,0.15)",
+                  width: 36, height: 36, borderRadius: 2, bgcolor: "rgba(144,202,249,0.15)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#60a5fa", flexShrink: 0,
+                  color: "#E3F2FD", flexShrink: 0,
                 }}>
                   {f.icon}
                 </Box>
-                <Typography color="#cbd5e1" fontSize={15} fontWeight={500}>{f.text}</Typography>
+                <Typography color="#E3F2FD" fontSize={15} fontWeight={500}>{f.text}</Typography>
               </Box>
             ))}
           </Box>
@@ -159,8 +159,8 @@ export default function LoginPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-p: { xs: 2, md: 4 },
-          bgcolor: "background.default",
+          p: { xs: 2, md: 4 },
+          bgcolor: "#E3F2FD",
         }}
       >
         <Paper
@@ -170,7 +170,7 @@ p: { xs: 2, md: 4 },
             width: "100%",
             maxWidth: 420,
             borderRadius: 4,
-            border: "1px solid #e2e8f0",
+            border: "1px solid #90CAF9",
             animation: shake ? "shake 0.5s ease" : "none",
             "@keyframes shake": {
               "0%,100%": { transform: "translateX(0)" },
@@ -182,10 +182,10 @@ p: { xs: 2, md: 4 },
           {/* Mobile logo */}
           <Box sx={{ display: { md: "none" }, textAlign: "center", mb: 3 }}>
             <Typography fontSize={32}>🏭</Typography>
-            <Typography variant="h5" fontWeight={800} color="primary">WI Manager</Typography>
+            <Typography variant="h5" fontWeight={800} color="#0D47A1">WI Manager</Typography>
           </Box>
 
-          <Typography variant="h5" fontWeight={800} color="#0f172a" sx={{ mb: 0.5 }}>
+          <Typography variant="h5" fontWeight={800} color="#0D47A1" sx={{ mb: 0.5 }}>
             Welcome back
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3, fontSize: 14 }}>
@@ -198,7 +198,7 @@ p: { xs: 2, md: 4 },
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="off">
             <TextField
               fullWidth
               label="Username"
@@ -206,11 +206,13 @@ p: { xs: 2, md: 4 },
               onChange={(e) => setUsername(e.target.value)}
               margin="normal"
               required
+              autoComplete="off"
+              name="username"
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Person sx={{ color: "#64748b" }} />
+                    <Person sx={{ color: "#2196F3" }} />
                   </InputAdornment>
                 ),
               }}
@@ -223,11 +225,13 @@ p: { xs: 2, md: 4 },
               onChange={(e) => setPassword(e.target.value)}
               margin="normal"
               required
+              autoComplete="new-password"
+              name="password"
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Lock sx={{ color: "#64748b" }} />
+                    <Lock sx={{ color: "#2196F3" }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -248,9 +252,9 @@ p: { xs: 2, md: 4 },
               endIcon={!loading && <ArrowForward />}
               sx={{
                 mt: 3, py: 1.4, borderRadius: 2, fontWeight: 700, fontSize: 16,
-                background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)",
-                boxShadow: "0 8px 24px rgba(30,64,175,0.3)",
-                "&:hover": { boxShadow: "0 12px 32px rgba(30,64,175,0.45)", transform: "translateY(-1px)" },
+                background: "linear-gradient(135deg, #0D47A1 0%, #2196F3 100%)",
+                boxShadow: "0 8px 24px rgba(13, 71, 161, 0.3)",
+                "&:hover": { boxShadow: "0 12px 32px rgba(13, 71, 161, 0.45)", transform: "translateY(-1px)" },
                 transition: "all 0.2s ease",
               }}
             >
@@ -278,7 +282,7 @@ p: { xs: 2, md: 4 },
               >
                 <Typography fontSize={20}>{u.icon}</Typography>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" fontWeight={700} color="#0f172a" fontSize={13}>
+                  <Typography variant="body2" fontWeight={700} color="#0D47A1" fontSize={13}>
                     {u.label}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">

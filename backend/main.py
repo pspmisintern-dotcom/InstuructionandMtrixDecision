@@ -1,22 +1,21 @@
 import os
 import sys
-from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-# Ensure the project root is on sys.path so package imports like
-# `from backend.database import ...` work regardless of the current working directory.
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+# Ensure the project root is on sys.path so that the `backend` package is
+# importable regardless of the working directory or how uvicorn is launched.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-dotenv_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(dotenv_path)
+from contextlib import asynccontextmanager
 
-from backend.database import Base, engine, SessionLocal
-from backend.knowledge_base import load_from_db
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from backend.database import Base, engine
+
 from backend.routes import (
     auth_routes,
     dashboard_routes,
@@ -28,20 +27,22 @@ from backend.routes import (
     notification_routes,
 )
 
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+load_dotenv()
+
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000"
+    ).split(",")
+    if origin.strip()
+]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup
     Base.metadata.create_all(bind=engine)
-    # Load the RAG knowledge base from the database
-    try:
-        load_from_db()
-    except Exception as e:
-        print(f"[main] Knowledge base load failed: {e}")
     yield
-
 
 app = FastAPI(
     title="Digital Work Instruction Management System",
@@ -58,7 +59,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers
 app.include_router(auth_routes.router)
 app.include_router(dashboard_routes.router)
 app.include_router(workinstruction_routes.router)

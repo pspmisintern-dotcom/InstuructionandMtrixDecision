@@ -16,6 +16,7 @@ import {
   IconButton,
   Tooltip,
   Stack,
+  Collapse,
 } from "@mui/material";
 import {
   SmartToy,
@@ -26,6 +27,8 @@ import {
   CheckCircle,
   ContentCopy,
   QuizOutlined,
+  ExpandMore,
+  ExpandLess,
 } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { aiApi } from "../../lib/api";
@@ -139,33 +142,33 @@ function AIBubbleMessage({ content, sources, mode, onCopy }) {
       sx={{
         display: "flex",
         width: "100%",
-        gap: 2,
+        gap: 1.5,
         flexDirection: "row",
       }}
     >
-      <Avatar sx={{ bgcolor: "#1e3a8a", width: 38, height: 38, flexShrink: 0 }}>
+      <Avatar sx={{ bgcolor: "#0D47A1", width: 36, height: 36, flexShrink: 0 }}>
         <SmartToy fontSize="small" />
       </Avatar>
       <Paper
         elevation={0}
         sx={{
           flex: 1,
-          maxWidth: "calc(100% - 56px)",
-          p: 2.5,
-          borderRadius: "4px 18px 18px 18px",
+          maxWidth: "calc(100% - 52px)",
+          p: 2,
+          borderRadius: "4px 14px 14px 14px",
           bgcolor: "background.paper",
           color: "text.primary",
           border: "1px solid",
-          borderColor: "divider",
-          boxShadow: "0 4px 14px rgba(15, 23, 42, 0.06)",
+          borderColor: "#90CAF9",
+          boxShadow: "0 2px 10px rgba(13, 71, 161, 0.06)",
           position: "relative",
         }}
       >
         <Box
           sx={{
             position: "absolute",
-            top: 10,
-            right: 10,
+            top: 8,
+            right: 8,
             display: "flex",
             alignItems: "center",
             gap: 0.5,
@@ -176,36 +179,36 @@ function AIBubbleMessage({ content, sources, mode, onCopy }) {
         >
           <Tooltip title="Copy answer">
             <IconButton size="small" onClick={() => onCopy(content)}>
-              <ContentCopy sx={{ fontSize: 14 }} />
+              <ContentCopy sx={{ fontSize: 13 }} />
             </IconButton>
           </Tooltip>
           <Chip
             size="small"
             label={mode === "openai" ? "GPT" : mode === "ollama" ? "Ollama" : "RAG"}
             sx={{
-              height: 20,
-              fontSize: 10,
+              height: 18,
+              fontSize: 9,
               fontWeight: 700,
-              bgcolor: mode === "fallback" ? "#fef9c3" : "#dbeafe",
-              color: mode === "fallback" ? "#854d0e" : "#1e40af",
+              bgcolor: mode === "fallback" ? "#fef9c3" : "#E3F2FD",
+              color: mode === "fallback" ? "#854d0e" : "#0D47A1",
             }}
           />
         </Box>
-        <Box sx={{ pr: 10 }}>{renderInlineMarkdown(content)}</Box>
+        <Box sx={{ pr: 8 }}>{renderInlineMarkdown(content)}</Box>
 
         {sources && sources.length > 0 && (
-          <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed #e2e8f0" }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-              <CheckCircle sx={{ color: "#10b981", fontSize: 14 }} />
+          <Box sx={{ mt: 1.5, pt: 1, borderTop: "1px dashed #90CAF9" }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
+              <CheckCircle sx={{ color: "#10b981", fontSize: 13 }} />
               <Typography
                 variant="caption"
                 fontWeight={800}
-                sx={{ color: "#475569", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}
+                sx={{ color: "#475569", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}
               >
                 Sourced From Approved Work Instructions
               </Typography>
             </Stack>
-            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+            <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
               {sources
                 .filter(
                   (s, i, arr) =>
@@ -228,7 +231,8 @@ function AIBubbleMessage({ content, sources, mode, onCopy }) {
                       color: "#166534",
                       border: "1px solid #86efac",
                       fontWeight: 600,
-                      fontSize: 11,
+                      fontSize: 10,
+                      height: 22,
                       "& .MuiChip-label": { px: 1 },
                     }}
                   />
@@ -247,25 +251,25 @@ function UserBubbleMessage({ content }) {
       sx={{
         display: "flex",
         width: "100%",
-        gap: 2,
+        gap: 1.5,
         flexDirection: "row-reverse",
       }}
     >
-      <Avatar sx={{ bgcolor: "#2563eb", width: 38, height: 38, flexShrink: 0 }}>
+      <Avatar sx={{ bgcolor: "#2196F3", width: 36, height: 36, flexShrink: 0 }}>
         <Person fontSize="small" />
       </Avatar>
       <Paper
         elevation={0}
         sx={{
-          maxWidth: "65%",
-          p: 2,
-          borderRadius: "18px 4px 18px 18px",
-          bgcolor: "#2563eb",
+          maxWidth: "70%",
+          p: 1.5,
+          borderRadius: "14px 4px 14px 14px",
+          bgcolor: "#2196F3",
           color: "#ffffff",
-          boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
+          boxShadow: "0 2px 10px rgba(33, 150, 243, 0.25)",
         }}
       >
-        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 14, color: "#ffffff" }}>
+        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6, fontSize: 13.5, color: "#ffffff" }}>
           {content}
         </Typography>
       </Paper>
@@ -294,7 +298,7 @@ export default function AIPage() {
     const recalc = () => {
       if (!containerRef.current || !scrollRef.current) return;
       const scrollRect = scrollRef.current.getBoundingClientRect();
-      const available = window.innerHeight - scrollRect.top - 100;
+      const available = window.innerHeight - scrollRect.top - 80;
       if (available > 200) setScrollAreaHeight(available);
     };
     recalc();
@@ -365,40 +369,40 @@ export default function AIPage() {
 
   return (
     <Layout>
-      <Box ref={containerRef} sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", overflow: "hidden" }}>
+      <Box ref={containerRef} sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%", overflow: "hidden" }}>
         <Paper
           elevation={0}
           sx={{
-            p: 2.5,
+            p: 2,
             borderRadius: 3,
-            background: "linear-gradient(135deg, #0b1220 0%, #1e3a8a 60%, #1d4ed8 100%)",
+            background: "linear-gradient(135deg, #0D47A1 0%, #1565C0 60%, #2196F3 100%)",
             color: "#ffffff",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: 2,
+            gap: 1.5,
             flexShrink: 0,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Avatar sx={{ bgcolor: "rgba(255,255,255,0.18)", width: 46, height: 46 }}>
-              <SmartToy sx={{ fontSize: 26 }} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: "rgba(255,255,255,0.18)", width: 40, height: 40 }}>
+              <SmartToy sx={{ fontSize: 22 }} />
             </Avatar>
             <Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, flexWrap: "wrap" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                 <Typography variant="h5" fontWeight={900} sx={{ letterSpacing: "-0.3px" }}>
                   AI Work Instruction Assistant
                 </Typography>
                 <Chip
-                  icon={<AutoAwesome style={{ color: "#fbbf24", fontSize: 14 }} />}
-                  label="Detailed Answers • RAG Verified • Source Cited"
+                  icon={<AutoAwesome style={{ color: "#fbbf24", fontSize: 13 }} />}
+                  label="RAG Verified"
                   size="small"
-                  sx={{ bgcolor: "rgba(255,255,255,0.16)", color: "#ffffff", fontWeight: 700, fontSize: 11 }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.16)", color: "#ffffff", fontWeight: 700, fontSize: 10 }}
                 />
               </Box>
-              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: 13.5, mt: 0.25 }}>
-                Comprehensive answers drawn directly from approved Work Instructions with step-by-step detail.
+              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: 13, mt: 0.25 }}>
+                Answers drawn directly from approved Work Instructions.
               </Typography>
             </Box>
           </Box>
@@ -411,7 +415,7 @@ export default function AIPage() {
               sx={{
                 bgcolor: "rgba(255,255,255,0.1)",
                 "&:hover": { bgcolor: "rgba(255,255,255,0.22)" },
-                p: 1.25,
+                p: 1,
               }}
             >
               <DeleteOutline fontSize="small" />
@@ -432,14 +436,14 @@ export default function AIPage() {
           }}
         >
           <Chip
-            icon={<QuizOutlined sx={{ fontSize: 16 }} />}
-            label="Suggested Questions:"
-            size="medium"
+            icon={<QuizOutlined sx={{ fontSize: 14 }} />}
+            label="Suggested:"
+            size="small"
             sx={{
               fontWeight: 800,
-              color: "#475569",
-              bgcolor: "#f8fafc",
-              border: "1px solid #e2e8f0",
+              color: "#0D47A1",
+              bgcolor: "#E3F2FD",
+              border: "1px solid #90CAF9",
               flexShrink: 0,
             }}
           />
@@ -450,21 +454,21 @@ export default function AIPage() {
               onClick={() => handleSend(q)}
               clickable
               variant="outlined"
-              size="medium"
+              size="small"
               sx={{
                 fontWeight: 600,
                 bgcolor: "#ffffff",
-                borderColor: "#cbd5e1",
-                color: "#0f172a",
+                borderColor: "#90CAF9",
+                color: "#0D47A1",
                 whiteSpace: "normal",
-                minWidth: 280,
-                maxWidth: 420,
+                minWidth: 220,
+                maxWidth: 360,
                 textAlign: "left",
-                "& .MuiChip-label": { display: "block", lineHeight: 1.35, py: 0.4 },
+                "& .MuiChip-label": { display: "block", lineHeight: 1.3, py: 0.3 },
                 "&:hover": {
-                  bgcolor: "#eff6ff",
-                  borderColor: "#2563eb",
-                  color: "#1e40af",
+                  bgcolor: "#E3F2FD",
+                  borderColor: "#2196F3",
+                  color: "#0D47A1",
                 },
               }}
             />
@@ -472,8 +476,8 @@ export default function AIPage() {
         </Box>
 
         {error && (
-          <Paper sx={{ p: 1.5, bgcolor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 2, flexShrink: 0 }}>
-            <Typography color="error" variant="caption" fontWeight={700} fontSize={13}>
+          <Paper sx={{ p: 1, bgcolor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 2, flexShrink: 0 }}>
+            <Typography color="error" variant="caption" fontWeight={700} fontSize={12}>
               ⚠️ {error}
             </Typography>
           </Paper>
@@ -500,8 +504,8 @@ export default function AIPage() {
               minHeight: 0,
               overflowY: "auto",
               overflowX: "hidden",
-              p: 3,
-              bgcolor: "#f8fafc",
+              p: 2.5,
+              bgcolor: "#E3F2FD",
               scrollbarGutter: "stable",
             }}
           >
@@ -512,7 +516,7 @@ export default function AIPage() {
                   sx={{
                     alignItems: "flex-start",
                     px: 0,
-                    py: 1.5,
+                    py: 1,
                     width: "100%",
                     display: "block",
                   }}
@@ -530,58 +534,58 @@ export default function AIPage() {
                 </ListItem>
               ))}
               {loading && (
-                <ListItem sx={{ px: 0, py: 1.5, display: "block" }}>
-                  <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                    <Avatar sx={{ bgcolor: "#1e3a8a", width: 38, height: 38, flexShrink: 0 }}>
+                <ListItem sx={{ px: 0, py: 1, display: "block" }}>
+                  <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                    <Avatar sx={{ bgcolor: "#0D47A1", width: 36, height: 36, flexShrink: 0 }}>
                       <SmartToy fontSize="small" />
                     </Avatar>
                     <Paper
                       elevation={0}
                       sx={{
-                        px: 2.5,
-                        py: 1.75,
-                        borderRadius: "4px 18px 18px 18px",
+                        px: 2,
+                        py: 1.5,
+                        borderRadius: "4px 14px 14px 14px",
                         bgcolor: "background.paper",
-                        border: "1px solid #e2e8f0",
+                        border: "1px solid #90CAF9",
                         display: "flex",
                         alignItems: "center",
-                        gap: 2,
+                        gap: 1.5,
                       }}
                     >
-                      <CircularProgress size={20} color="primary" thickness={5} />
+                      <CircularProgress size={18} color="primary" thickness={5} />
                       <Box>
-                        <Typography variant="body2" fontWeight={700} color="text.primary">
+                        <Typography variant="body2" fontWeight={700} color="text.primary" fontSize={13}>
                           Retrieving and analyzing approved Work Instructions...
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Cross-referencing RAG knowledge base for the most detailed, accurate answer
+                        <Typography variant="caption" color="text.secondary" fontSize={11}>
+                          Cross-referencing RAG knowledge base
                         </Typography>
                       </Box>
                     </Paper>
                   </Box>
                 </ListItem>
               )}
-              <div ref={bottomAnchorRef} style={{ height: 8, flexShrink: 0 }} />
+              <div ref={bottomAnchorRef} style={{ height: 6, flexShrink: 0 }} />
             </List>
           </Box>
 
           <Divider />
           <Box
             sx={{
-              p: 2,
+              p: 1.5,
               bgcolor: "#ffffff",
               display: "flex",
-              gap: 1.5,
+              gap: 1,
               alignItems: "center",
               flexShrink: 0,
-              borderTop: "1px solid #e2e8f0",
+              borderTop: "1px solid #E3F2FD",
             }}
           >
             <TextField
               fullWidth
               multiline
               maxRows={3}
-              placeholder="Ask a detailed question — e.g. 'List all PPE required for Plasma Spray and explain why each item is needed'..."
+              placeholder="Ask a detailed question..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -592,7 +596,7 @@ export default function AIPage() {
               }}
               disabled={loading}
               sx={{
-                "& .MuiOutlinedInput-root": { borderRadius: 2.5, fontSize: 14, py: 0.25 },
+                "& .MuiOutlinedInput-root": { borderRadius: 2, fontSize: 13, py: 0.25 },
               }}
             />
             <Button
@@ -600,14 +604,14 @@ export default function AIPage() {
               color="primary"
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}
-              startIcon={loading ? <CircularProgress size={16} style={{ color: "#fff" }} /> : <Send />}
+              startIcon={loading ? <CircularProgress size={14} style={{ color: "#fff" }} /> : <Send />}
               sx={{
-                py: 1.5,
-                px: 3,
-                borderRadius: 2.5,
+                py: 1.2,
+                px: 2.5,
+                borderRadius: 2,
                 fontWeight: 800,
                 textTransform: "none",
-                minWidth: 110,
+                minWidth: 100,
                 alignSelf: "stretch",
               }}
             >
