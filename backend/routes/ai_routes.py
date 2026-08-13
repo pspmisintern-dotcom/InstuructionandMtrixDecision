@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict
 from sqlalchemy.orm import Session
@@ -10,6 +10,16 @@ from backend.ai_assistant import ask_question
 from backend.agent_graph import node_ai_assistant, WorkflowState, run_workflow
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+
+def require_ai_access(current_user: User = Depends(get_current_user)) -> User:
+    """Dependency to check if the user has AI Assistant access."""
+    if current_user.role != "admin" and not current_user.ai_assistant_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="AI Assistant access has not been granted. Please contact the administrator.",
+        )
+    return current_user
 
 
 class AskRequest(BaseModel):
@@ -30,7 +40,7 @@ class WorkflowRequest(BaseModel):
 
 
 @router.post("/ask")
-def ask(req: AskRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def ask(req: AskRequest, current_user: User = Depends(require_ai_access), db: Session = Depends(get_db)):
     if not req.question.strip():
         return {"answer": "Please ask a question.", "sources": []}
 
@@ -48,7 +58,7 @@ def ask(req: AskRequest, current_user: User = Depends(get_current_user), db: Ses
 
 
 @router.post("/workflow")
-def run_workflow(req: WorkflowRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def run_workflow(req: WorkflowRequest, current_user: User = Depends(require_ai_access), db: Session = Depends(get_db)):
     """Run the LangGraph workflow through the AI node (or full graph)."""
     state: WorkflowState = {
         "operator_id": current_user.id,

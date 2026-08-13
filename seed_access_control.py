@@ -27,11 +27,12 @@ for u in users:
         role=u["role"],
         department=u["department"],
         access_granted=(u["role"] == "admin"),
+        ai_assistant_enabled=(u["role"] == "admin"),
     )
     db.add(user)
 
 db.commit()
 print("Users seeded")
 for u in db.query(User).all():
-    print(f"  - {u.username}: role={u.role}, access_granted={u.access_granted}")
+    print(f"  - {u.username}: role={u.role}, access_granted={u.access_granted}, ai_assistant_enabled={u.ai_assistant_enabled}")
 db.close()

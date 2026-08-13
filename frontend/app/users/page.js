@@ -24,7 +24,7 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { Add, Delete, LockOpen, Lock, ContentCopy } from "@mui/icons-material";
+import { Add, Delete, LockOpen, Lock, ContentCopy, SmartToy } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
 
@@ -119,6 +119,26 @@ export default function UsersPage() {
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to revoke access");
+    }
+  };
+
+  const handleGrantAIAssistant = async (userId) => {
+    setError("");
+    try {
+      await authApi.grantAIAssistant(userId);
+      await loadUsers();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to grant AI Assistant access");
+    }
+  };
+
+  const handleRevokeAIAssistant = async (userId) => {
+    setError("");
+    try {
+      await authApi.revokeAIAssistant(userId);
+      await loadUsers();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to revoke AI Assistant access");
     }
   };
 
@@ -219,6 +239,7 @@ export default function UsersPage() {
                 <TableCell>Status</TableCell>
                 <TableCell>Access</TableCell>
                 <TableCell>Access Expires</TableCell>
+                <TableCell>AI Assistant</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -249,7 +270,38 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell>{u.role === "admin" ? "-" : formatDate(u.access_expires_at)}</TableCell>
                   <TableCell>
+                    {u.role === "admin" ? (
+                      <Chip label="Always" color="primary" size="small" />
+                    ) : u.ai_assistant_enabled ? (
+                      <Chip label="Granted" color="success" size="small" />
+                    ) : (
+                      <Chip label="Not Granted" color="default" size="small" />
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <Box sx={{ display: "flex", gap: 0.5 }}>
+                      {u.role !== "admin" && !u.ai_assistant_enabled && (
+                        <Tooltip title="Grant AI Assistant">
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => handleGrantAIAssistant(u.id)}
+                          >
+                            <SmartToy />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {u.role !== "admin" && u.ai_assistant_enabled && (
+                        <Tooltip title="Revoke AI Assistant">
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => handleRevokeAIAssistant(u.id)}
+                          >
+                            <SmartToy htmlColor="#ef4444" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       {u.role !== "admin" && (
                         <>
                           {!u.access_granted ? (

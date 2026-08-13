@@ -51,7 +51,7 @@ import { notificationApi } from "../lib/api";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: <DashboardIcon />, roles: ["admin", "supervisor", "operator"] },
   { label: "Work Instructions", href: "/workinstructions", icon: <DescriptionIcon />, roles: ["admin", "supervisor", "operator"] },
-  { label: "AI Assistant", href: "/ai", icon: <AIIcon />, roles: ["admin", "supervisor", "operator"] },
+  { label: "AI Assistant", href: "/ai", icon: <AIIcon />, roles: ["admin", "supervisor", "operator"], requiresAiAccess: true },
   { label: "Users", href: "/users", icon: <UsersIcon />, roles: ["admin"] },
   { label: "Audit Logs", href: "/audit", icon: <AuditIcon />, roles: ["admin", "supervisor"] },
 ];
@@ -89,10 +89,19 @@ export default function Layout({ children }) {
       if (currentItem && !hasRole(...currentItem.roles)) {
         setAccessDenied(true);
       }
+      // AI Assistant requires admin role OR admin-granted access
+      if (currentItem?.requiresAiAccess && user?.role !== "admin" && !user?.ai_assistant_enabled) {
+        setAccessDenied(true);
+      }
     }
   }, [pathname, user]);
 
-  const visibleItems = navItems.filter((item) => hasRole(...item.roles));
+  const visibleItems = navItems.filter((item) => {
+    if (!hasRole(...item.roles)) return false;
+    // AI Assistant requires admin role OR admin-granted access
+    if (item.requiresAiAccess && user?.role !== "admin" && !user?.ai_assistant_enabled) return false;
+    return true;
+  });
 
   const handleLogout = () => {
     logout();

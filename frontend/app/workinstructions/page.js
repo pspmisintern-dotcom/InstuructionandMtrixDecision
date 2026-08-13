@@ -72,7 +72,7 @@ function WorkInstructionsContent() {
 
   const getLanguageLabel = (lang) => {
     const found = LANGUAGES.find((l) => l.code === lang);
-    return found ? found.label : lang === "en" ? "English" : "Hindi";
+    return found ? found.label : lang === "en" ? "English" : lang === "hi" ? "Hindi" : "Marathi";
   };
 
   const handleDownload = async (wi) => {

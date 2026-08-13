@@ -19,20 +19,7 @@ from deep_translator import GoogleTranslator
 SUPPORTED_LANGUAGES = {
     "en": "English",
     "hi": "Hindi",
-    "ta": "Tamil",
-    "te": "Telugu",
     "mr": "Marathi",
-    "kn": "Kannada",
-    "bn": "Bengali",
-    "gu": "Gujarati",
-    "pa": "Punjabi",
-    "ml": "Malayalam",
-    "es": "Spanish",
-    "fr": "French",
-    "de": "German",
-    "zh-CN": "Chinese (Simplified)",
-    "ja": "Japanese",
-    "ar": "Arabic",
 }
 
 CACHE_DIR = Path(__file__).resolve().parent / "data" / "pdf_cache"

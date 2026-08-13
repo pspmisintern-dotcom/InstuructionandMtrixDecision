@@ -78,6 +78,7 @@ def seed_users(db):
                 role=u["role"],
                 department=u["department"],
                 access_granted=access_granted,
+                ai_assistant_enabled=(u["role"] == "admin"),
             ))
     db.commit()
     print("[seed] Users seeded.")

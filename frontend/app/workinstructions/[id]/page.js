@@ -27,6 +27,7 @@ import {
 import Layout from "../../../components/Layout";
 import { workInstructionApi } from "../../../lib/api";
 import { useLanguage, LANGUAGES } from "../../../context/LanguageContext";
+import { useAuth } from "../../../context/AuthContext";
 
 function cleanTitle(title) {
   if (!title) return title;
@@ -36,6 +37,7 @@ function cleanTitle(title) {
 export default function WorkInstructionDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const { language, setLanguage, languageLabel } = useLanguage();
   const [wi, setWi] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -116,15 +118,17 @@ export default function WorkInstructionDetailPage() {
         >
           Back to Work Instructions
         </Button>
-        <Button
-          variant="outlined"
-          color="info"
-          startIcon={<SmartToy />}
-          onClick={() => router.push(`/ai?wi=${wi.id}`)}
-          sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
-        >
-          Ask AI Assistant
-        </Button>
+        {user?.role === "admin" || user?.ai_assistant_enabled ? (
+          <Button
+            variant="outlined"
+            color="info"
+            startIcon={<SmartToy />}
+            onClick={() => router.push(`/ai?wi=${wi.id}`)}
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+          >
+            Ask AI Assistant
+          </Button>
+        ) : null}
       </Box>
 
       <Card

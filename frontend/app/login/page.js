@@ -23,17 +23,10 @@ import {
   Shield,
   SmartToy,
   Description,
-  Analytics,
   CheckCircle,
   ArrowForward,
 } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
-
-const demoUsers = [
-  { label: "Administrator", username: "admin", password: "admin123", color: "#0D47A1", icon: "🔑" },
-  { label: "Supervisor", username: "supervisor", password: "Supervisor 123", color: "#2196F3", icon: "👷" },
-  { label: "Operator", username: "operator", password: "operator123", color: "#90CAF9", icon: "🔧" },
-];
 
 const features = [
   { icon: <Description />, text: "46+ Digital Work Instructions" },
@@ -66,12 +59,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = (u) => {
-    setUsername(u.username);
-    setPassword(u.password);
-    setError("");
   };
 
   return (
@@ -261,42 +248,6 @@ export default function LoginPage() {
               {loading ? <CircularProgress size={24} color="inherit" /> : "Sign In"}
             </Button>
           </form>
-
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={600}>DEMO ACCOUNTS</Typography>
-          </Divider>
-
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {demoUsers.map((u) => (
-              <Box
-                key={u.username}
-                onClick={() => fillDemo(u)}
-                sx={{
-                  display: "flex", alignItems: "center", gap: 1.5,
-                  p: 1.5, borderRadius: 2, cursor: "pointer",
-                  border: `1px solid ${u.color}25`,
-                  bgcolor: `${u.color}08`,
-                  transition: "all 0.2s",
-                  "&:hover": { bgcolor: `${u.color}15`, transform: "translateX(4px)", borderColor: `${u.color}50` },
-                }}
-              >
-                <Typography fontSize={20}>{u.icon}</Typography>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" fontWeight={700} color="#0D47A1" fontSize={13}>
-                    {u.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {u.username} / {u.password}
-                  </Typography>
-                </Box>
-                <Chip
-                  label="Click to fill"
-                  size="small"
-                  sx={{ bgcolor: `${u.color}15`, color: u.color, fontWeight: 600, fontSize: 10, border: `1px solid ${u.color}30` }}
-                />
-              </Box>
-            ))}
-          </Box>
         </Paper>
       </Box>
     </Box>

@@ -30,6 +30,9 @@ class User(Base):
     # One-time password flag - set True when admin issues access, cleared after user changes password
     must_change_password = Column(Boolean, default=False)
 
+    # AI Assistant access - admin grants/revokes this feature for operators/supervisors
+    ai_assistant_enabled = Column(Boolean, default=False)
+
     # Track last login IP address for security auditing
     last_access_ip = Column(String(45), nullable=True)  # IPv4 or IPv6
 

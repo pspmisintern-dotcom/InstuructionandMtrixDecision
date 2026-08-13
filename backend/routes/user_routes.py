@@ -59,6 +59,7 @@ def _user_dict(u: User) -> dict:
         "access_requested_at": u.access_requested_at,
         "access_request_reason": u.access_request_reason,
         "must_change_password": u.must_change_password,
+        "ai_assistant_enabled": u.ai_assistant_enabled,
         "last_access_ip": u.last_access_ip,
         "created_at": u.created_at,
     }

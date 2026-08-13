@@ -103,6 +103,7 @@ def _user_dict(user: User) -> dict:
         "access_expires_at": user.access_expires_at,
         "access_request_status": user.access_request_status,
         "must_change_password": user.must_change_password,
+        "ai_assistant_enabled": user.ai_assistant_enabled,
     }
 
 
@@ -237,6 +238,7 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
                 role="admin",
                 department="IT / Management",
                 access_granted=True,
+                ai_assistant_enabled=True,
                 is_active=True,
             )
             db.add(admin)
@@ -488,6 +490,86 @@ def revoke_access(
     db.commit()
 
     return {"message": f"Access revoked from {user.full_name}."}
+
+
+# ---------------------------------------------------------------------------
+# POST /auth/grant-ai-assistant  — admin only
+# ---------------------------------------------------------------------------
+
+class GrantAIAssistantRequest(BaseModel):
+    user_id: int
+
+
+@router.post("/grant-ai-assistant")
+def grant_ai_assistant(
+    req: GrantAIAssistantRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Admin grants AI Assistant feature access to an operator/supervisor."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can grant AI Assistant access.")
+
+    user = db.query(User).filter(User.id == req.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Admin always has AI Assistant access.")
+
+    user.ai_assistant_enabled = True
+
+    db.add(AuditLog(
+        user_id=current_user.id,
+        action="GRANT_AI_ASSISTANT",
+        detail=f"Admin '{current_user.username}' granted AI Assistant access to '{user.username}'.",
+    ))
+    db.commit()
+
+    return {
+        "message": f"AI Assistant access granted to {user.full_name}.",
+        "username": user.username,
+        "ai_assistant_enabled": True,
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /auth/revoke-ai-assistant  — admin only
+# ---------------------------------------------------------------------------
+
+class RevokeAIAssistantRequest(BaseModel):
+    user_id: int
+
+
+@router.post("/revoke-ai-assistant")
+def revoke_ai_assistant(
+    req: RevokeAIAssistantRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Admin revokes AI Assistant feature access from an operator/supervisor."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can revoke AI Assistant access.")
+
+    user = db.query(User).filter(User.id == req.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Cannot revoke AI Assistant access from admin.")
+
+    user.ai_assistant_enabled = False
+
+    db.add(AuditLog(
+        user_id=current_user.id,
+        action="REVOKE_AI_ASSISTANT",
+        detail=f"Admin '{current_user.username}' revoked AI Assistant access from '{user.username}'.",
+    ))
+    db.commit()
+
+    return {
+        "message": f"AI Assistant access revoked from {user.full_name}.",
+        "username": user.username,
+        "ai_assistant_enabled": False,
+    }
 
 
 # ---------------------------------------------------------------------------

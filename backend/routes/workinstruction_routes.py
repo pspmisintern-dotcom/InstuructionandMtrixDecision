@@ -22,6 +22,7 @@ DATA_ROOT = PROJECT_ROOT / "data"
 LANGUAGE_FOLDERS = {
     "en": DATA_ROOT / "English Data",
     "hi": DATA_ROOT / "HIndi data",
+    "mr": DATA_ROOT / "Marathi data",
 }
 
 FALLBACK_DATA_DIRS = [
@@ -44,6 +45,7 @@ def extract_wi_number_from_pdf(filename: str) -> str:
 def extract_title_from_pdf(filename: str, lang: str) -> str:
     name = re.sub(r"\.pdf$", "", filename, flags=re.IGNORECASE)
     name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"_Marathi$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*to[_\s]+", "To ", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
@@ -98,6 +100,14 @@ def scan_and_populate_pdfs(db: Session):
         if not folder.exists():
             continue
         for pdf_file in sorted(folder.glob("*.pdf")):
+            # For non-English folders, only include files with the language suffix
+            # to avoid duplicates (e.g. Hindi folder has both "WI_06 Plasma Spray.pdf"
+            # and "WI_01_for_Inward_Hindi.pdf" - the non-suffixed ones are English duplicates)
+            if lang != "en":
+                lang_suffix = {"hi": "hindi", "mr": "marathi"}.get(lang, lang)
+                if lang_suffix not in pdf_file.name.lower():
+                    continue
+
             file_path_key = f"pdf:{lang}:{pdf_file.name}"
             if file_path_key in existing_paths:
                 continue
@@ -106,13 +116,14 @@ def scan_and_populate_pdfs(db: Session):
             title = extract_title_from_pdf(pdf_file.name, lang)
             department = determine_department_from_filename(pdf_file.name)
 
+            lang_label = {"en": "English", "hi": "Hindi", "mr": "Marathi"}.get(lang, lang)
             record = WorkInstruction(
                 wi_number=wi_number,
                 title=title,
                 revision="Rev 1",
                 department=department,
                 activity=title,
-                scope=f"{title} - work instruction document ({'English' if lang == 'en' else 'Hindi'} version).",
+                scope=f"{title} - work instruction document ({lang_label} version).",
                 file_path=file_path_key,
             )
             new_records.append(record)
@@ -139,6 +150,13 @@ def resolve_pdf_path(file_path: str, lang: str = "en") -> Optional[Path]:
                 candidate = folder / filename
                 if candidate.exists():
                     return candidate
+                # For non-English languages, also try with the language suffix
+                if target_lang != "en":
+                    lang_suffix = {"hi": "Hindi", "mr": "Marathi"}.get(target_lang, target_lang)
+                    base_name = Path(filename).stem
+                    suffixed = folder / f"{base_name}_{lang_suffix}.pdf"
+                    if suffixed.exists():
+                        return suffixed
             if stored_lang in LANGUAGE_FOLDERS:
                 folder = LANGUAGE_FOLDERS[stored_lang]
                 candidate = folder / filename
@@ -162,6 +180,7 @@ def clean_wi_title(wi: WorkInstruction) -> str:
     name = re.sub(r"\.docx?$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"\.pdf$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"_Marathi$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
     name = name.replace("_", " ").replace("(", "").replace(")", "")
