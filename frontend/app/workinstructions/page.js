@@ -103,6 +103,16 @@ function WorkInstructionsContent() {
     return matchesSearch && matchesDept;
   });
 
+  const UNASSIGNED = "Unassigned";
+  const groupOrder = [...departments, UNASSIGNED];
+  const grouped = filtered.reduce((acc, wi) => {
+    const key = wi.department || UNASSIGNED;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(wi);
+    return acc;
+  }, {});
+  const groupsToRender = groupOrder.filter((dept) => grouped[dept]?.length);
+
   return (
     <Layout>
       <PageHeader
@@ -165,69 +175,77 @@ function WorkInstructionsContent() {
           <CircularProgress color="primary" />
         </Box>
       ) : (
-        <Grid container spacing={2}>
-          {filtered.map((wi) => (
-            <Grid item xs={12} sm={6} md={4} key={wi.id}>
-              <Card
-                sx={{
-                  height: "100%",
-                  bgcolor: theme.palette.background.paper,
-                  border: `1px solid ${theme.palette.mode === "dark" ? "#1e3a5f" : "#90CAF9"}`,
-                  boxShadow: "0 10px 30px rgba(13, 71, 161, 0.08)",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                  display: "flex",
-                  flexDirection: "column",
-                  "&:hover": { transform: "translateY(-4px)", boxShadow: "0 18px 36px rgba(13, 71, 161, 0.15)" },
-                }}
-              >
-                <CardContent sx={{ flex: 1 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
-                    <Chip label={wi.wi_number} color="primary" size="small" />
-                    <Chip label={wi.revision} size="small" variant="outlined" />
-                  </Box>
-                  <Typography variant="h6" fontWeight={600} sx={{ mt: 1, color: theme.palette.primary.main, minHeight: 60 }}>
-                    {shortenTitle(wi.title)}
-                  </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5 }}>
-                    <LanguageIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {getLanguageLabel(wi.language || language)}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {wi.department || "General"}
-                  </Typography>
-                </CardContent>
-                <Divider />
-                <CardActions sx={{ p: 1.5, justifyContent: "space-between" }}>
-                  <Button
-                    size="small"
-                    startIcon={<OpenInNew />}
-                    onClick={() => router.push(`/workinstructions/${wi.id}`)}
-                    sx={{ color: "#0D47A1", fontWeight: 700 }}
-                  >
-                    Open
-                  </Button>
-                  <Button
-                    size="small"
-                    startIcon={<Download />}
-                    onClick={() => handleDownload(wi)}
-                    sx={{ color: "#2196F3", fontWeight: 700 }}
-                  >
-                    Download
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
+        <>
+          {groupsToRender.map((dept) => (
+            <Box key={dept} sx={{ mb: 4 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                <Typography variant="h6" fontWeight={700} sx={{ color: theme.palette.primary.main }}>
+                  {dept}
+                </Typography>
+                <Chip label={grouped[dept].length} size="small" />
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                {grouped[dept].map((wi) => (
+                  <Grid item xs={12} sm={6} md={4} key={wi.id}>
+                    <Card
+                      sx={{
+                        height: "100%",
+                        bgcolor: theme.palette.background.paper,
+                        border: `1px solid ${theme.palette.mode === "dark" ? "#1e3a5f" : "#90CAF9"}`,
+                        boxShadow: "0 10px 30px rgba(13, 71, 161, 0.08)",
+                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                        display: "flex",
+                        flexDirection: "column",
+                        "&:hover": { transform: "translateY(-4px)", boxShadow: "0 18px 36px rgba(13, 71, 161, 0.15)" },
+                      }}
+                    >
+                      <CardContent sx={{ flex: 1 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
+                          <Chip label={wi.wi_number} color="primary" size="small" />
+                          <Chip label={wi.revision} size="small" variant="outlined" />
+                        </Box>
+                        <Typography variant="h6" fontWeight={600} sx={{ mt: 1, color: theme.palette.primary.main, minHeight: 60 }}>
+                          {shortenTitle(wi.title)}
+                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5 }}>
+                          <LanguageIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
+                          <Typography variant="body2" color="text.secondary">
+                            {getLanguageLabel(wi.language || language)}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                      <Divider />
+                      <CardActions sx={{ p: 1.5, justifyContent: "space-between" }}>
+                        <Button
+                          size="small"
+                          startIcon={<OpenInNew />}
+                          onClick={() => router.push(`/workinstructions/${wi.id}`)}
+                          sx={{ color: "#0D47A1", fontWeight: 700 }}
+                        >
+                          Open
+                        </Button>
+                        <Button
+                          size="small"
+                          startIcon={<Download />}
+                          onClick={() => handleDownload(wi)}
+                          sx={{ color: "#2196F3", fontWeight: 700 }}
+                        >
+                          Download
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
           ))}
           {filtered.length === 0 && (
-            <Grid item xs={12}>
-              <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                No work instructions found.
-              </Typography>
-            </Grid>
+            <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+              No work instructions found.
+            </Typography>
           )}
-        </Grid>
+        </>
       )}
     </Layout>
   );

@@ -14,7 +14,7 @@ from backend.pdf_converter import docx_to_translated_pdf, SUPPORTED_LANGUAGES
 
 router = APIRouter(prefix="/workinstructions", tags=["workinstructions"])
 
-DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Sales", "Purchase", "Maintenance", "Quality"]
+DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Marketing", "Change control", "Purchase", "Maintenance", "Quality", "Sales", "QMS"]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = PROJECT_ROOT / "data"
@@ -64,12 +64,18 @@ def determine_department_from_filename(filename: str) -> str:
         return "Spraying"
     if any(k in lower for k in ["training", "hr", "human resource"]):
         return "HR"
-    if any(k in lower for k in ["sales", "marketing"]):
-        return "Sales"
+    if "marketing" in lower:
+        return "Marketing"
+    if any(k in lower for k in ["change control", "nc product", "product control", "corrective action"]):
+        return "Change control"
     if any(k in lower for k in ["purchase", "purchasing", "procurement"]):
         return "Purchase"
     if any(k in lower for k in ["maintenance", "preventive", "maint"]):
         return "Maintenance"
+    if any(k in lower for k in ["internal audit", "internal_audit", "leadership", "continual", "annexure", "operation"]):
+        return "QMS"
+    if "sales" in lower:
+        return "Sales"
     if any(k in lower for k in ["quality", "inspection", "calibration", "hardness", "qms", "test", "checking"]):
         return "Quality"
     return "Production"
@@ -267,7 +273,7 @@ def list_work_instructions(
     if lang:
         pattern = f"pdf:{lang}:%"
         query = query.filter(WorkInstruction.file_path.like(pattern))
-    wis = query.order_by(WorkInstruction.wi_number).all()
+    wis = query.order_by(WorkInstruction.department, WorkInstruction.wi_number).all()
     return [wi_to_dict(wi) for wi in wis]
 
 
