@@ -42,14 +42,15 @@ CORS_ORIGINS = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup
+    print("[main] Creating database tables...")
     Base.metadata.create_all(bind=engine)
-    # Load the RAG knowledge base from the database
-    try:
-        load_from_db()
-    except Exception as e:
-        print(f"[main] Knowledge base load failed: {e}")
+    print("[main] Database tables ready.")
+
+    print("[main] Skipping RAG knowledge-base loading during startup.")
+
     yield
+
+    print("[main] Application shutting down.")
 
 app = FastAPI(
     title="Digital Work Instruction Management System",

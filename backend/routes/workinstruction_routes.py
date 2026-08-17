@@ -104,8 +104,10 @@ def scan_and_populate_pdfs(db: Session):
             # to avoid duplicates (e.g. Hindi folder has both "WI_06 Plasma Spray.pdf"
             # and "WI_01_for_Inward_Hindi.pdf" - the non-suffixed ones are English duplicates)
             if lang != "en":
-                lang_suffix = {"hi": "hindi", "mr": "marathi"}.get(lang, lang)
-                if lang_suffix not in pdf_file.name.lower():
+                lang_suffix = {"hi": "hindi", "mr": "marathi"}.get(lang, lang).lower()
+                file_lower = pdf_file.name.lower()
+                # Only include if filename contains the language suffix (case-insensitive)
+                if lang_suffix not in file_lower:
                     continue
 
             file_path_key = f"pdf:{lang}:{pdf_file.name}"

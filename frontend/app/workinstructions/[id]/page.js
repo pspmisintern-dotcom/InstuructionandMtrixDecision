@@ -17,6 +17,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  useTheme,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -35,6 +36,7 @@ function cleanTitle(title) {
 }
 
 export default function WorkInstructionDetailPage() {
+  const theme = useTheme();
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -137,7 +139,9 @@ export default function WorkInstructionDetailPage() {
           borderRadius: 3,
           boxShadow: "0 20px 40px rgba(15, 23, 42, 0.12)",
           overflow: "hidden",
-          background: "linear-gradient(135deg, #0b1220 0%, #1e3a8a 100%)",
+          background: theme.palette.mode === "dark"
+            ? "linear-gradient(135deg, #0D1B2A 0%, #16233F 100%)"
+            : "linear-gradient(135deg, #0D47A1 0%, #2196F3 100%)",
           color: "#ffffff",
         }}
       >
@@ -195,7 +199,7 @@ export default function WorkInstructionDetailPage() {
       <Paper
         sx={{
           borderRadius: 3,
-          border: "1px solid #e2e8f0",
+          border: `1px solid ${theme.palette.divider}`,
           overflow: "hidden",
           minHeight: "75vh",
           position: "relative",
@@ -205,8 +209,8 @@ export default function WorkInstructionDetailPage() {
           sx={{
             px: 3,
             py: 1.5,
-            bgcolor: "#f8fafc",
-            borderBottom: "1px solid #e2e8f0",
+            bgcolor: theme.palette.mode === "dark" ? "#12263A" : "#f8fafc",
+            borderBottom: `1px solid ${theme.palette.divider}`,
             display: "flex",
             alignItems: "center",
             gap: 1,

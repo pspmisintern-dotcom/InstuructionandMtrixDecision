@@ -29,6 +29,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  useTheme,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
@@ -57,6 +58,7 @@ const navItems = [
 ];
 
 export default function Layout({ children }) {
+  const theme = useTheme();
   const { user, logout, hasRole } = useAuth();
   const { darkMode, toggleDarkMode } = useThemeMode();
   const { language, setLanguage } = useLanguage();
@@ -115,7 +117,7 @@ export default function Layout({ children }) {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <AppBar position="fixed" sx={{ zIndex: 1300, bgcolor: "#0D47A1" }}>
+      <AppBar position="fixed" sx={{ zIndex: 1300, bgcolor: theme.palette.primary.main }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box
@@ -123,7 +125,7 @@ export default function Layout({ children }) {
                 width: 36,
                 height: 36,
                 borderRadius: 2,
-                bgcolor: "#2196F3",
+                bgcolor: theme.palette.primary.light,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -219,9 +221,9 @@ export default function Layout({ children }) {
             width: 240,
             boxSizing: "border-box",
             mt: 8,
-            bgcolor: "#0D47A1",
-            color: "#90CAF9",
-            borderRight: "1px solid #1565C0",
+            bgcolor: theme.palette.primary.main,
+            color: theme.palette.primary.light,
+            borderRight: `1px solid ${theme.palette.primary.dark}`,
           },
         }}
       >
@@ -237,19 +239,19 @@ export default function Layout({ children }) {
                     mx: 1,
                     borderRadius: 2,
                     mb: 0.5,
-                    color: "#90CAF9",
+                    color: theme.palette.primary.light,
                     "&:hover": {
                       bgcolor: "rgba(33, 150, 243, 0.2)",
                       color: "#ffffff",
                     },
                     "&.Mui-selected": {
-                      bgcolor: "#2196F3",
-                      color: "#ffffff",
+                      bgcolor: theme.palette.primary.light,
+                      color: theme.palette.primary.main,
                       "&:hover": {
-                        bgcolor: "#2196F3",
+                        bgcolor: theme.palette.primary.light,
                       },
                       "& .MuiListItemIcon-root": {
-                        color: "#ffffff",
+                        color: theme.palette.primary.main,
                       },
                     },
                   }}
@@ -288,7 +290,7 @@ export default function Layout({ children }) {
         onClose={handleAccessDeniedClose}
         aria-labelledby="access-denied-title"
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: "#0D47A1" }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: theme.palette.primary.main }}>
           <LockIcon sx={{ color: "#ef4444" }} />
           Access Denied
         </DialogTitle>

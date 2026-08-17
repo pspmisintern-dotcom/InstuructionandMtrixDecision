@@ -19,6 +19,8 @@ export function AppThemeProvider({ children }) {
       if (saved === "dark") {
         setDarkMode(true);
         document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
       }
     }
   }, []);
@@ -48,7 +50,6 @@ export function AppThemeProvider({ children }) {
           info: { main: "#2196F3" },
           success: { main: "#22c55e" },
           error: { main: "#ef4444" },
-          warning: { main: "#f59e0b" },
           background: {
             default: darkMode ? "#0D1B2A" : "#E3F2FD",
             paper: darkMode ? "#12263A" : "#ffffff",

@@ -45,9 +45,12 @@ body {
   background: #2196F3;
 }
 
-.dark ::-webkit-scrollbar-track {
+html.dark ::-webkit-scrollbar-track {
   background: #0D1B2A;
 }
-.dark ::-webkit-scrollbar-thumb {
+html.dark ::-webkit-scrollbar-thumb {
   background: #1565C0;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #90CAF9;
 }

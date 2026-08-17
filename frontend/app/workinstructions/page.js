@@ -18,6 +18,7 @@ import {
   Button,
   CardActions,
   Divider,
+  useTheme,
 } from "@mui/material";
 import { Search, Description, OpenInNew, Download, Language as LanguageIcon } from "@mui/icons-material";
 import Layout from "../../components/Layout";
@@ -25,6 +26,7 @@ import { workInstructionApi } from "../../lib/api";
 import { useLanguage, LANGUAGES } from "../../context/LanguageContext";
 
 function WorkInstructionsContent() {
+  const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { language, setLanguage, languageLabel } = useLanguage();
@@ -184,8 +186,8 @@ function WorkInstructionsContent() {
               <Card
                 sx={{
                   height: "100%",
-                  bgcolor: "#ffffff",
-                  border: "1px solid #90CAF9",
+                  bgcolor: theme.palette.background.paper,
+                  border: `1px solid ${theme.palette.mode === "dark" ? "#1e3a5f" : "#90CAF9"}`,
                   boxShadow: "0 10px 30px rgba(13, 71, 161, 0.08)",
                   transition: "transform 0.2s ease, box-shadow 0.2s ease",
                   display: "flex",
@@ -198,11 +200,11 @@ function WorkInstructionsContent() {
                     <Chip label={wi.wi_number} color="primary" size="small" />
                     <Chip label={wi.revision} size="small" variant="outlined" />
                   </Box>
-                  <Typography variant="h6" fontWeight={600} sx={{ mt: 1, color: "#0D47A1", minHeight: 60 }}>
+                  <Typography variant="h6" fontWeight={600} sx={{ mt: 1, color: theme.palette.primary.main, minHeight: 60 }}>
                     {shortenTitle(wi.title)}
                   </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5 }}>
-                    <LanguageIcon sx={{ fontSize: 16, color: "#2196F3" }} />
+                    <LanguageIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
                     <Typography variant="body2" color="text.secondary">
                       {getLanguageLabel(wi.language || language)}
                     </Typography>
