@@ -48,6 +48,7 @@ import { useAuth } from "../context/AuthContext";
 import { useThemeMode } from "./ThemeProvider";
 import { useLanguage, LANGUAGES } from "../context/LanguageContext";
 import { notificationApi } from "../lib/api";
+import Logo from "./Logo";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: <DashboardIcon />, roles: ["admin", "supervisor", "operator"] },
@@ -119,29 +120,12 @@ export default function Layout({ children }) {
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <AppBar position="fixed" sx={{ zIndex: 1300, bgcolor: theme.palette.primary.main }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 2,
-                bgcolor: theme.palette.primary.light,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 20,
-              }}
-            >
-              🏭
-            </Box>
-            <Typography variant="h6" component="div" sx={{ fontWeight: 700, color: "#ffffff" }}>
-              WI Manager
-            </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Logo size="small" showText={true} />
             <Chip
               label="🟢 System Active"
               size="small"
               sx={{
-                ml: 1.5,
                 bgcolor: "rgba(16, 185, 129, 0.15)",
                 color: "#10b981",
                 fontWeight: 700,

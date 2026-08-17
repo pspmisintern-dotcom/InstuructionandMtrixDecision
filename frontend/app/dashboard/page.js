@@ -40,13 +40,18 @@ import Layout from "../../components/Layout";
 import { useAuth } from "../../context/AuthContext";
 import { dashboardApi } from "../../lib/api";
 
-const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"];
+const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Sales", "Purchase", "Maintenance", "Quality"];
 
 const DEPARTMENT_COLORS = {
   Grinding: { gradient: "linear-gradient(90deg, #7c3aed, #a78bfa)", bg: "#f5f3ff" },
   Masking: { gradient: "linear-gradient(90deg, #f59e0b, #fbbf24)", bg: "#fffbeb" },
   Spraying: { gradient: "linear-gradient(90deg, #2196F3, #90CAF9)", bg: "#E3F2FD" },
   Production: { gradient: "linear-gradient(90deg, #059669, #10b981)", bg: "#ecfdf5" },
+  HR: { gradient: "linear-gradient(90deg, #ec4899, #f472b6)", bg: "#fdf2f8" },
+  Sales: { gradient: "linear-gradient(90deg, #14b8a6, #2dd4bf)", bg: "#f0fdfa" },
+  Purchase: { gradient: "linear-gradient(90deg, #0ea5e9, #38bdf8)", bg: "#f0f9ff" },
+  Maintenance: { gradient: "linear-gradient(90deg, #f97316, #fb923c)", bg: "#fff7ed" },
+  Quality: { gradient: "linear-gradient(90deg, #6366f1, #818cf8)", bg: "#eef2ff" },
 };
 
 const DEFAULT_DEPARTMENT_BREAKDOWN = DEPARTMENTS.map((dept) => ({

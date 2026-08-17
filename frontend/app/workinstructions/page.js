@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import { Search, Description, OpenInNew, Download, Language as LanguageIcon } from "@mui/icons-material";
 import Layout from "../../components/Layout";
+import PageHeader from "../../components/PageHeader";
 import { workInstructionApi } from "../../lib/api";
 import { useLanguage, LANGUAGES } from "../../context/LanguageContext";
 
@@ -104,27 +105,11 @@ function WorkInstructionsContent() {
 
   return (
     <Layout>
-      <Paper
-        sx={{
-          mb: 3,
-          p: 3,
-          borderRadius: 3,
-          background: "linear-gradient(135deg, #0D47A1 0%, #2196F3 100%)",
-          color: "#fff",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Description sx={{ fontSize: 36 }} />
-          <Box>
-            <Typography variant="h4" fontWeight={800}>
-              Work Instructions
-            </Typography>
-            <Typography sx={{ opacity: 0.9 }}>
-              Select a language, then open any instruction to view it as a translated PDF in your browser.
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+      <PageHeader
+        icon={Description}
+        title="Work Instructions"
+        subtitle="Select a language, then open any instruction to view it as a translated PDF in your browser."
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

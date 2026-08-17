@@ -14,7 +14,7 @@ from backend.pdf_converter import docx_to_translated_pdf, SUPPORTED_LANGUAGES
 
 router = APIRouter(prefix="/workinstructions", tags=["workinstructions"])
 
-DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
+DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Sales", "Purchase", "Maintenance", "Quality"]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = PROJECT_ROOT / "data"
@@ -56,12 +56,22 @@ def extract_title_from_pdf(filename: str, lang: str) -> str:
 
 def determine_department_from_filename(filename: str) -> str:
     lower = filename.lower()
-    if any(k in lower for k in ["grind", "abrasive", "wheel", "surface finish", "polish"]):
+    if any(k in lower for k in ["grind", "abrasive", "wheel", "surface finish", "polish", "bainline"]):
         return "Grinding"
-    if any(k in lower for k in ["mask", "tape", "cover", "protect"]):
+    if any(k in lower for k in ["mask", "tape", "cover", "protect", "masking"]):
         return "Masking"
     if any(k in lower for k in ["spray", "blasting", "coating", "paint", "thermal", "hvof", "plasma", "twas", "pta"]):
         return "Spraying"
+    if any(k in lower for k in ["training", "hr", "human resource"]):
+        return "HR"
+    if any(k in lower for k in ["sales", "marketing"]):
+        return "Sales"
+    if any(k in lower for k in ["purchase", "purchasing", "procurement"]):
+        return "Purchase"
+    if any(k in lower for k in ["maintenance", "preventive", "maint"]):
+        return "Maintenance"
+    if any(k in lower for k in ["quality", "inspection", "calibration", "hardness", "qms", "test", "checking"]):
+        return "Quality"
     return "Production"
 
 
