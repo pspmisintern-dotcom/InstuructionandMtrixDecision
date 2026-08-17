@@ -27,6 +27,7 @@ import {
   ArrowForward,
 } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
+import Logo from "../../components/Logo";
 
 const features = [
   { icon: <Description />, text: "46+ Digital Work Instructions" },
@@ -98,14 +99,23 @@ export default function LoginPage() {
 
         <Box sx={{ position: "relative", zIndex: 1, maxWidth: 440, textAlign: "center" }}>
           {/* Logo */}
-          <Box sx={{
-            width: 80, height: 80, borderRadius: 4,
-            background: "linear-gradient(135deg, #2196F3 0%, #0D47A1 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            mx: "auto", mb: 3, fontSize: 36,
-            boxShadow: "0 20px 60px rgba(33, 150, 243, 0.4)",
-          }}>
-            🏭
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+            <Box sx={{
+              width: 100, height: 100, borderRadius: 4,
+              background: "linear-gradient(135deg, #2196F3 0%, #0D47A1 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 20px 60px rgba(33, 150, 243, 0.4)",
+              overflow: "hidden",
+            }}>
+              <img
+                src="/images/logo.png"
+                alt="Plasma Spray Logo"
+                style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+              {/* Fallback text if image doesn't load */}
+              <Typography sx={{ fontSize: 48, display: "none" }}>🏭</Typography>
+            </Box>
           </Box>
 
           <Typography variant="h3" fontWeight={800} color="#ffffff" sx={{ mb: 1, letterSpacing: "-0.5px" }}>
@@ -168,7 +178,19 @@ export default function LoginPage() {
         >
           {/* Mobile logo */}
           <Box sx={{ display: { md: "none" }, textAlign: "center", mb: 3 }}>
-            <Typography fontSize={32}>🏭</Typography>
+            <Box sx={{
+              width: 60, height: 60, borderRadius: 2,
+              background: "linear-gradient(135deg, #2196F3 0%, #0D47A1 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              mx: "auto", mb: 2, overflow: "hidden",
+            }}>
+              <img
+                src="/images/logo.png"
+                alt="Logo"
+                style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }}
+                onError={(e) => { e.target.style.display = "none"; e.target.parentElement.textContent = "🏭"; }}
+              />
+            </Box>
             <Typography variant="h5" fontWeight={800} color="#0D47A1">WI Manager</Typography>
           </Box>
 
