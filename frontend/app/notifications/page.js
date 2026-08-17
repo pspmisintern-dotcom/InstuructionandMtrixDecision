@@ -21,14 +21,22 @@ import {
   OutlinedInput,
   Snackbar,
   Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import {
   NotificationsActive,
   Warning,
   Info,
   CheckCircle,
+  Cancel,
   DoneAll,
   Send as SendIcon,
+  MarkEmailRead,
 } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { notificationApi, userApi } from "../../lib/api";
@@ -46,8 +54,11 @@ export default function NotificationsPage() {
   const [severity, setSeverity] = useState("info");
   const [sending, setSending] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [sentNotifs, setSentNotifs] = useState([]);
+  const [sentLoading, setSentLoading] = useState(false);
 
   const canSend = hasRole("admin", "supervisor");
+  const isAdmin = hasRole("admin");
 
   const loadNotifs = async () => {
     try {
@@ -72,9 +83,23 @@ export default function NotificationsPage() {
     }
   };
 
+  const loadSentNotifs = async () => {
+    if (!canSend) return;
+    setSentLoading(true);
+    try {
+      const res = await notificationApi.sent();
+      setSentNotifs(res.data || []);
+    } catch {
+      setSentNotifs([]);
+    } finally {
+      setSentLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadNotifs();
     loadUsers();
+    loadSentNotifs();
   }, []);
 
   const markAllRead = async () => {
@@ -104,6 +129,7 @@ export default function NotificationsPage() {
       setTitle("");
       setMessage("");
       setSeverity("info");
+      await loadSentNotifs();
     } catch (err) {
       setSnackbar({ open: true, message: err.response?.data?.detail || "Failed to send notification.", severity: "error" });
     } finally {
@@ -121,7 +147,7 @@ export default function NotificationsPage() {
     <Layout>
       <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
         <Box>
-          <Typography variant="h4" fontWeight={700} sx={{ color: "#0D47A1" }}>
+          <Typography variant="h4" fontWeight={700} sx={{ color: "text.primary" }}>
             Notifications
           </Typography>
           <Typography color="text.secondary">
@@ -141,7 +167,7 @@ export default function NotificationsPage() {
 
       {canSend && (
         <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "#0D47A1" }}>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "text.primary" }}>
             <SendIcon color="primary" />
             Send Notification
           </Typography>
@@ -209,6 +235,78 @@ export default function NotificationsPage() {
               {sending ? <CircularProgress size={20} color="inherit" /> : "Send Notification"}
             </Button>
           </Box>
+        </Paper>
+      )}
+
+      {canSend && (
+        <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "text.primary" }}>
+            <MarkEmailRead color="primary" />
+            Sent Notifications — Read Status
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {isAdmin
+              ? "Track whether each recipient has read notifications sent by anyone."
+              : "Track whether each recipient has read the notifications you sent."}
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          {sentLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : sentNotifs.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+              No sent notifications yet.
+            </Typography>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Title</TableCell>
+                    <TableCell>Recipient</TableCell>
+                    {isAdmin && <TableCell>Sent By</TableCell>}
+                    <TableCell>Severity</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Sent At</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {sentNotifs.map((n) => (
+                    <TableRow key={n.id}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>{n.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">{n.message}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        {n.recipient_name || n.recipient_username || "—"}
+                      </TableCell>
+                      {isAdmin && <TableCell>{n.sender_name || "—"}</TableCell>}
+                      <TableCell>
+                        <Chip
+                          label={n.severity}
+                          size="small"
+                          color={n.severity === "danger" ? "error" : n.severity === "warning" ? "warning" : "info"}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {n.is_read ? (
+                          <Chip icon={<CheckCircle />} label="Read" size="small" color="success" variant="outlined" />
+                        ) : (
+                          <Chip icon={<Cancel />} label="Unread" size="small" color="default" variant="outlined" />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(n.created_at).toLocaleString()}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 

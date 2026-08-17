@@ -69,6 +69,7 @@ def send_notification(
     for recipient in recipients:
         notif = Notification(
             user_id=recipient.id,
+            sender_id=current_user.id,
             title=req.title,
             message=req.message,
             severity=req.severity,
@@ -87,6 +88,39 @@ def send_notification(
         "message": f"Notification sent to {len(recipients)} recipient(s).",
         "recipient_count": len(recipients),
     }
+
+
+@router.get("/sent")
+def list_sent_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Admin sees every notification sent by anyone; Supervisor sees only their own sends.
+
+    Lets the sender see, per recipient, whether the notification has been read.
+    """
+    if current_user.role not in ("admin", "supervisor"):
+        raise HTTPException(status_code=403, detail="Only Admin or Supervisor can view sent notifications.")
+
+    query = db.query(Notification).filter(Notification.sender_id.isnot(None))
+    if current_user.role != "admin":
+        query = query.filter(Notification.sender_id == current_user.id)
+
+    notifs = query.order_by(Notification.created_at.desc()).limit(200).all()
+
+    return [
+        {
+            "id": n.id,
+            "title": n.title,
+            "message": n.message,
+            "severity": n.severity,
+            "is_read": n.is_read,
+            "created_at": n.created_at,
+            "recipient_id": n.user_id,
+            "recipient_name": n.user.full_name if n.user else None,
+            "recipient_username": n.user.username if n.user else None,
+            "sender_id": n.sender_id,
+            "sender_name": n.sender.full_name if n.sender else None,
+        }
+        for n in notifs
+    ]
 
 
 @router.post("/{notification_id}/read")

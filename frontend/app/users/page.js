@@ -28,7 +28,22 @@ import { Add, Delete, LockOpen, Lock, ContentCopy, SmartToy } from "@mui/icons-m
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
 
-const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"];
+const DEPARTMENTS = [
+  "Grinding",
+  "Masking",
+  "Spraying",
+  "Production",
+  "HR",
+  "Maintenance",
+  "Sales",
+  "Quality Assurance",
+  "Calibration",
+  "Marketing",
+  "Purchase",
+  "Inspection",
+  "Packing",
+  "Training",
+];
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);

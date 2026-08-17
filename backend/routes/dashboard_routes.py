@@ -9,7 +9,22 @@ from backend.auth import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
-DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
+DEPARTMENTS = [
+    "Grinding",
+    "Masking",
+    "Spraying",
+    "Production",
+    "HR",
+    "Maintenance",
+    "Sales",
+    "Quality Assurance",
+    "Calibration",
+    "Marketing",
+    "Purchase",
+    "Inspection",
+    "Packing",
+    "Training",
+]
 
 # Map legacy department names to the new canonical list
 LEGACY_DEPARTMENT_MAP = {
@@ -123,4 +138,3 @@ def dashboard_summary(current_user: User = Depends(get_current_user), db: Sessio
             for n in notifications
         ],
     }
-

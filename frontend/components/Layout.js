@@ -30,6 +30,7 @@ import {
   DialogActions,
   Button,
   useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
@@ -43,6 +44,7 @@ import {
   LightMode as LightModeIcon,
   Language as LanguageIcon,
   Lock as LockIcon,
+  Menu as MenuIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { useThemeMode } from "./ThemeProvider";
@@ -58,8 +60,11 @@ const navItems = [
   { label: "Audit Logs", href: "/audit", icon: <AuditIcon />, roles: ["admin", "supervisor"] },
 ];
 
+const DRAWER_WIDTH = 240;
+
 export default function Layout({ children }) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { user, logout, hasRole } = useAuth();
   const { darkMode, toggleDarkMode } = useThemeMode();
   const { language, setLanguage } = useLanguage();
@@ -68,6 +73,7 @@ export default function Layout({ children }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const loadUnreadCount = async () => {
     try {
@@ -121,6 +127,14 @@ export default function Layout({ children }) {
       <AppBar position="fixed" sx={{ zIndex: 1300, bgcolor: theme.palette.primary.main }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={() => setMobileOpen((prev) => !prev)}
+              sx={{ display: { xs: "inline-flex", md: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
             <Logo size="small" showText={true} />
             <Chip
               label="🟢 System Active"
@@ -197,21 +211,24 @@ export default function Layout({ children }) {
       </AppBar>
 
       <Drawer
-        variant="permanent"
+        variant={isMobile ? "temporary" : "permanent"}
+        open={isMobile ? mobileOpen : true}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
         sx={{
-          width: 240,
+          width: DRAWER_WIDTH,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
-            width: 240,
+            width: DRAWER_WIDTH,
             boxSizing: "border-box",
-            mt: 8,
+            mt: isMobile ? 0 : 8,
             bgcolor: theme.palette.primary.main,
             color: theme.palette.primary.light,
             borderRight: `1px solid ${theme.palette.primary.dark}`,
           },
         }}
       >
-        <Box sx={{ overflow: "auto", mt: 8 }}>
+        <Box sx={{ overflow: "auto", mt: isMobile ? 8 : 8 }}>
           <List>
             {visibleItems.map((item) => (
               <ListItem key={item.href} disablePadding>
@@ -219,6 +236,7 @@ export default function Layout({ children }) {
                   component={Link}
                   href={item.href}
                   selected={pathname === item.href}
+                  onClick={() => isMobile && setMobileOpen(false)}
                   sx={{
                     mx: 1,
                     borderRadius: 2,
@@ -264,7 +282,7 @@ export default function Layout({ children }) {
         </Box>
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8, bgcolor: "background.default", minHeight: "100vh" }}>
+      <Box component="main" sx={{ flexGrow: 1, width: { xs: "100%", md: `calc(100% - ${DRAWER_WIDTH}px)` }, p: { xs: 2, sm: 3 }, mt: 8, bgcolor: "background.default", minHeight: "100vh" }}>
         {children}
       </Box>
 

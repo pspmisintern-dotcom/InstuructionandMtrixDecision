@@ -40,7 +40,7 @@ class User(Base):
 
     audit_logs = relationship("AuditLog", back_populates="user")
     checklists = relationship("Checklist", back_populates="user")
-    notifications = relationship("Notification", back_populates="user")
+    notifications = relationship("Notification", back_populates="user", foreign_keys="Notification.user_id")
 
 
 class WorkInstruction(Base):
@@ -171,10 +171,12 @@ class Notification(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     title = Column(String(300), nullable=False)
     message = Column(Text, nullable=False)
     severity = Column(String(20), default="info")  # info | warning | danger
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", back_populates="notifications")
+    user = relationship("User", back_populates="notifications", foreign_keys=[user_id])
+    sender = relationship("User", foreign_keys=[sender_id])

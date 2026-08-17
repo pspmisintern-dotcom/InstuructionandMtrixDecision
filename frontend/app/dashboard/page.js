@@ -21,6 +21,7 @@ import {
   LinearProgress,
   Tooltip,
   Skeleton,
+  useTheme,
 } from "@mui/material";
 import {
   Description as DescriptionIcon,
@@ -123,6 +124,8 @@ const StatCard = ({ title, value, subtitle, icon, gradient, color, onClick }) =>
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -290,7 +293,7 @@ export default function DashboardPage() {
                   variant="outlined"
                   startIcon={<PlayCircleFilled color="primary" />}
                   onClick={() => router.push("/workinstructions")}
-                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#90CAF9", color: "#0D47A1", "&:hover": { bgcolor: "#E3F2FD", borderColor: "#2196F3" } }}
+                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "divider", color: "text.primary", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } }}
                 >
                   View Work Instructions
                 </Button>
@@ -301,7 +304,7 @@ export default function DashboardPage() {
                   variant="outlined"
                   startIcon={<AIIcon color="secondary" />}
                   onClick={() => router.push("/ai")}
-                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#90CAF9", color: "#0D47A1", "&:hover": { bgcolor: "#E3F2FD", borderColor: "#2196F3" } }}
+                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "divider", color: "text.primary", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } }}
                 >
                   Query AI Assistant
                 </Button>
@@ -312,7 +315,7 @@ export default function DashboardPage() {
                   variant="outlined"
                   startIcon={<HistoryIcon color="info" />}
                   onClick={() => router.push("/audit")}
-                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "#90CAF9", color: "#0D47A1", "&:hover": { bgcolor: "#E3F2FD", borderColor: "#2196F3" } }}
+                  sx={{ py: 1.5, justifyContent: "flex-start", textTransform: "none", fontWeight: 700, borderRadius: 2, borderColor: "divider", color: "text.primary", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } }}
                 >
                   View Audit Logs
                 </Button>
@@ -321,7 +324,7 @@ export default function DashboardPage() {
           </Paper>
 
           {/* Department Overview Cards */}
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "#0D47A1" }}>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "text.primary" }}>
             <RuleIcon color="primary" />
             Department Overview
           </Typography>
@@ -371,7 +374,7 @@ export default function DashboardPage() {
                         sx={{
                           height: 8,
                           borderRadius: 4,
-                          bgcolor: "#E3F2FD",
+                          bgcolor: isDark ? "#1e3a5f" : "#E3F2FD",
                           "& .MuiLinearProgress-bar": { borderRadius: 4, background: colorScheme.gradient },
                         }}
                       />
@@ -421,11 +424,11 @@ export default function DashboardPage() {
                           py: 1.5,
                           mb: 1.5,
                           borderRadius: 2,
-                          bgcolor: "#E3F2FD",
-                          border: "1px solid #90CAF9",
+                          bgcolor: isDark ? "#1e3a5f" : "#E3F2FD",
+                          border: isDark ? "1px solid #2c4a6e" : "1px solid #90CAF9",
                           cursor: "pointer",
                           transition: "all 0.2s ease",
-                          "&:hover": { bgcolor: "#90CAF9", borderColor: "#2196F3" },
+                          "&:hover": { bgcolor: isDark ? "#2c4a6e" : "#90CAF9", borderColor: "primary.main" },
                         }}
                         onClick={() => router.push(item.id ? `/workinstructions/${item.id}` : "/workinstructions")}
                       >
@@ -496,16 +499,16 @@ export default function DashboardPage() {
                     System Overview
                   </Typography>
                   <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#E3F2FD", border: "1px solid #90CAF9" }}>
-                      <Typography variant="h4" fontWeight={800} sx={{ color: "#0D47A1" }}>
+                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: isDark ? "#1e3a5f" : "#E3F2FD", border: isDark ? "1px solid #2c4a6e" : "1px solid #90CAF9" }}>
+                      <Typography variant="h4" fontWeight={800} sx={{ color: "text.primary" }}>
                         {data.total_work_instructions || 0}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
                         Total WIs
                       </Typography>
                     </Box>
-                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: "#E3F2FD", border: "1px solid #90CAF9" }}>
-                      <Typography variant="h4" fontWeight={800} sx={{ color: "#0D47A1" }}>
+                    <Box sx={{ flex: 1, minWidth: 100, p: 2, borderRadius: 2, bgcolor: isDark ? "#1e3a5f" : "#E3F2FD", border: isDark ? "1px solid #2c4a6e" : "1px solid #90CAF9" }}>
+                      <Typography variant="h4" fontWeight={800} sx={{ color: "text.primary" }}>
                         {data.total_users || 0}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
@@ -523,7 +526,7 @@ export default function DashboardPage() {
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <NotifIcon color="warning" />
-                <Typography variant="h6" fontWeight={700} sx={{ color: "#0D47A1" }}>
+                <Typography variant="h6" fontWeight={700} sx={{ color: "text.primary" }}>
                   System Notifications & Alerts
                 </Typography>
               </Box>
@@ -555,7 +558,7 @@ export default function DashboardPage() {
           <Paper sx={{ p: 3, borderRadius: 3, mt: 3, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
               <HistoryIcon color="primary" />
-              <Typography variant="h6" fontWeight={700} sx={{ color: "#0D47A1" }}>
+              <Typography variant="h6" fontWeight={700} sx={{ color: "text.primary" }}>
                 Recent System Activity
               </Typography>
             </Box>

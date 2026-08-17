@@ -21,8 +21,10 @@ body {
   background-color: #E3F2FD;
 }
 
-.dark {
+html.dark,
+html.dark body {
   color-scheme: dark;
+  background-color: #0D1B2A;
 }
 
 * {
