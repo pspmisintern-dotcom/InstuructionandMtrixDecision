@@ -68,7 +68,7 @@ export default function ChecklistsPage() {
           mb: 3,
           p: 3,
           borderRadius: 3,
-          background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
+          background: "linear-gradient(135deg, #0D47A1 0%, #1565C0 100%)",
           color: "#fff",
         }}
       >
@@ -134,9 +134,9 @@ export default function ChecklistsPage() {
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
                     <Chip label={wi.wi_number} color="primary" size="small" sx={{ fontWeight: 700 }} />
-                    <ArrowForward sx={{ color: "#1e3a8a", fontSize: 20 }} />
+                    <ArrowForward sx={{ color: "#0D47A1", fontSize: 20 }} />
                   </Box>
-                  <Typography variant="h6" fontWeight={700} sx={{ mb: 1, color: "#1e3a8a", minHeight: 44 }}>
+                  <Typography variant="h6" fontWeight={700} sx={{ mb: 1, color: "#0D47A1", minHeight: 44 }}>
                     {shortenTitle(wi.title)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">

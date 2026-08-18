@@ -2,10 +2,9 @@
 
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import Image from "next/image";
 
 export default function Logo({ size = "small", showText = true }) {
-  const logoPath = "/images/logo.png";
+  const logoPath = "/images/logo.svg";
   const dimensions = size === "large" ? { width: 60, height: 60 } : { width: 40, height: 40 };
 
   return (
@@ -15,12 +14,13 @@ export default function Logo({ size = "small", showText = true }) {
           position: "relative",
           width: dimensions.width,
           height: dimensions.height,
-          borderRadius: 2,
+          borderRadius: "50%",
           background: "linear-gradient(135deg, #2196F3 0%, #0D47A1 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
+          flexShrink: 0,
         }}
       >
         <img
@@ -29,8 +29,8 @@ export default function Logo({ size = "small", showText = true }) {
           style={{
             width: "100%",
             height: "100%",
-            objectFit: "contain",
-            padding: 4,
+            objectFit: "cover",
+            borderRadius: "50%",
           }}
           onError={(e) => {
             e.target.style.display = "none";

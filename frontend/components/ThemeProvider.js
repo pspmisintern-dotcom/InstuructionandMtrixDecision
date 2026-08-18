@@ -51,7 +51,7 @@ export function AppThemeProvider({ children }) {
           success: { main: "#22c55e" },
           error: { main: "#ef4444" },
           background: {
-            default: darkMode ? "#0D1B2A" : "#E3F2FD",
+            default: darkMode ? "#0D1B2A" : "#F5F9FF",
             paper: darkMode ? "#12263A" : "#ffffff",
           },
           text: {

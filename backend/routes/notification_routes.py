@@ -150,3 +150,44 @@ def mark_all_read(current_user: User = Depends(get_current_user), db: Session = 
         n.is_read = True
     db.commit()
     return {"message": f"Marked {len(notifs)} notifications as read"}
+
+
+@router.delete("/clear-all")
+def clear_all_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Admin-only: permanently clears every notification in the system (personal, sent, and broadcast)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can clear all notifications.")
+
+    count = db.query(Notification).count()
+    db.query(Notification).delete()
+    db.add(AuditLog(
+        user_id=current_user.id,
+        action="CLEAR_NOTIFICATIONS",
+        detail=f"'{current_user.username}' cleared all {count} notification(s).",
+    ))
+    db.commit()
+    return {"message": f"Cleared {count} notification(s)."}
+
+
+@router.delete("/{notification_id}")
+def delete_notification(
+    notification_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Admin-only: permanently deletes a single notification."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can delete notifications.")
+
+    notif = db.query(Notification).filter(Notification.id == notification_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    db.delete(notif)
+    db.add(AuditLog(
+        user_id=current_user.id,
+        action="CLEAR_NOTIFICATIONS",
+        detail=f"'{current_user.username}' deleted notification '{notif.title}'.",
+    ))
+    db.commit()
+    return {"message": "Notification deleted"}

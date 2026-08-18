@@ -20,11 +20,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 responses
+// Handle 401 responses (session expired) — but not a failed login attempt itself,
+// which also returns 401 for bad credentials and needs to be handled on the login page.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginRequest = error.config?.url?.includes("/auth/login");
+    if (error.response?.status === 401 && !isLoginRequest) {
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -99,6 +101,8 @@ export const notificationApi = {
   send: (data) => api.post("/notifications/send", data),
   markRead: (id) => api.post(`/notifications/${id}/read`),
   markAllRead: () => api.post("/notifications/read-all"),
+  delete: (id) => api.delete(`/notifications/${id}`),
+  clearAll: () => api.delete("/notifications/clear-all"),
 };
 
 export default api;

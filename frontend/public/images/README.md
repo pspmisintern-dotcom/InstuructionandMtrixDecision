@@ -5,8 +5,8 @@
 To use your Plasma Spray logo instead of the default placeholder:
 
 1. **Replace the logo file:**
-   - Save your logo image as `logo.png` in this directory: `/public/images/logo.png`
-   - Supported formats: PNG (recommended), SVG, JPG
+   - Save your logo image as `logo.svg` in this directory: `/frontend/public/images/logo.svg`
+   - Supported formats: PNG, SVG, JPG
    - Recommended size: 200x200px or larger (will be scaled automatically)
 
 2. **Logo placement:**
@@ -30,16 +30,16 @@ The logo is managed by the `Logo` component at `/frontend/components/Logo.js`:
 ## Styling
 
 - Background: Linear gradient from #2196F3 to #0D47A1 (Industrial Blue)
-- The logo area has a border-radius of 8px (rounded corners)
+- The logo area is rendered as a circle (`border-radius: 50%`) with the image cropped to fill it (`object-fit: cover`)
 - Dark mode support: Background adjusts automatically
 
 ## Next Steps
 
-1. Prepare your logo image (PNG format, 200x200px minimum)
-2. Place it as `logo.png` in `/public/images/`
+1. Prepare your logo image (SVG or PNG format, 200x200px minimum)
+2. Place it as `logo.svg` in `/frontend/public/images/`
 3. Restart the development server
 4. The logo will appear throughout the application!
 
 ---
 
-**Current Status:** Using default factory emoji as placeholder
+**Current Status:** Using custom SVG logo (thermal spray nozzle design)

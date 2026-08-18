@@ -9,6 +9,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  IconButton,
   CircularProgress,
   Alert,
   Button,
@@ -27,6 +28,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Tooltip,
 } from "@mui/material";
 import {
   NotificationsActive,
@@ -37,6 +44,8 @@ import {
   DoneAll,
   Send as SendIcon,
   MarkEmailRead,
+  DeleteSweep,
+  DeleteOutline,
 } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { notificationApi, userApi } from "../../lib/api";
@@ -56,6 +65,9 @@ export default function NotificationsPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [sentNotifs, setSentNotifs] = useState([]);
   const [sentLoading, setSentLoading] = useState(false);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const canSend = hasRole("admin", "supervisor");
   const isAdmin = hasRole("admin");
@@ -111,6 +123,33 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      await notificationApi.clearAll();
+      setSnackbar({ open: true, message: "All notifications cleared.", severity: "success" });
+      setClearDialogOpen(false);
+      await loadNotifs();
+      await loadSentNotifs();
+    } catch (err) {
+      setSnackbar({ open: true, message: err.response?.data?.detail || "Failed to clear notifications.", severity: "error" });
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const handleDeleteOne = async (id) => {
+    setDeletingId(id);
+    try {
+      await notificationApi.delete(id);
+      await loadNotifs();
+    } catch (err) {
+      setSnackbar({ open: true, message: err.response?.data?.detail || "Failed to delete notification.", severity: "error" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleSend = async () => {
     if (!recipientIds.length || !title.trim() || !message.trim()) {
       setSnackbar({ open: true, message: "Please fill in all fields and select at least one recipient.", severity: "error" });
@@ -154,9 +193,21 @@ export default function NotificationsPage() {
             Alerts, messages, and notifications.
           </Typography>
         </Box>
-        <Button variant="outlined" startIcon={<DoneAll />} onClick={markAllRead}>
-          Mark all read
-        </Button>
+        {isAdmin ? (
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteSweep />}
+            onClick={() => setClearDialogOpen(true)}
+            disabled={notifs.length === 0}
+          >
+            Clear All
+          </Button>
+        ) : (
+          <Button variant="outlined" startIcon={<DoneAll />} onClick={markAllRead}>
+            Mark all read
+          </Button>
+        )}
       </Box>
 
       {error && (
@@ -340,7 +391,22 @@ export default function NotificationsPage() {
                     </>
                   }
                 />
-                {n.is_read && <CheckCircle color="success" fontSize="small" />}
+                {n.is_read && <CheckCircle color="success" fontSize="small" sx={{ mr: isAdmin ? 1 : 0 }} />}
+                {isAdmin && (
+                  <Tooltip title="Delete notification">
+                    <span>
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteOne(n.id)}
+                        disabled={deletingId === n.id}
+                      >
+                        {deletingId === n.id ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
               </ListItem>
             ))}
             {notifs.length === 0 && (
@@ -362,6 +428,27 @@ export default function NotificationsPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog open={clearDialogOpen} onClose={() => !clearing && setClearDialogOpen(false)}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <DeleteSweep color="error" />
+          Clear all notifications?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This permanently deletes every notification in the system for all users, including
+            broadcast alerts and sent messages. This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClearDialogOpen(false)} disabled={clearing}>
+            Cancel
+          </Button>
+          <Button onClick={handleClearAll} color="error" variant="contained" disabled={clearing}>
+            {clearing ? <CircularProgress size={20} color="inherit" /> : "Clear All"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }

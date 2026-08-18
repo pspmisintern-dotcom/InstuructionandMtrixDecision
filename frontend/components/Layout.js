@@ -20,7 +20,6 @@ import {
   Menu,
   MenuItem,
   Tooltip,
-  Chip,
   Badge,
   FormControl,
   Select,
@@ -136,18 +135,6 @@ export default function Layout({ children }) {
               <MenuIcon />
             </IconButton>
             <Logo size="small" showText={true} />
-            <Chip
-              label="🟢 System Active"
-              size="small"
-              sx={{
-                bgcolor: "rgba(16, 185, 129, 0.15)",
-                color: "#10b981",
-                fontWeight: 700,
-                fontSize: 11,
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-                display: { xs: "none", sm: "inline-flex" },
-              }}
-            />
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <FormControl size="small" sx={{ minWidth: 160, display: { xs: "none", md: "block" } }}>
