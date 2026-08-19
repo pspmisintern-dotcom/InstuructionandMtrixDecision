@@ -50,7 +50,6 @@ export default function UsersPage() {
   });
   const [form, setForm] = useState({
     username: "",
-    email: "",
     full_name: "",
     role: "operator",
     department: "",
@@ -80,7 +79,6 @@ export default function UsersPage() {
       setOpen(false);
       setForm({
         username: "",
-        email: "",
         full_name: "",
         role: "operator",
         department: "",
@@ -392,13 +390,6 @@ export default function UsersPage() {
             fullWidth
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
-            margin="normal"
-          />
-          <TextField
-            label="Email"
-            fullWidth
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
             margin="normal"
           />
           <Box

@@ -29,7 +29,7 @@ def generate_random_password(length: int = 12) -> str:
 
 class UserCreate(BaseModel):
     username: str
-    email: str
+    email: Optional[str] = None
     full_name: str
     role: str = "operator"
     department: Optional[str] = None
@@ -114,8 +114,10 @@ def create_user(
             detail=f"Invalid department. Must be one of: {', '.join(DEPARTMENTS)}",
         )
 
+    email = new_user.email or f"{new_user.username}@users.local"
+
     exists = db.query(User).filter(
-        (User.username == new_user.username) | (User.email == new_user.email)
+        (User.username == new_user.username) | (User.email == email)
     ).first()
     if exists:
         raise HTTPException(status_code=400, detail="Username or email already exists")
@@ -125,7 +127,7 @@ def create_user(
 
     user = User(
         username=new_user.username,
-        email=new_user.email,
+        email=email,
         full_name=new_user.full_name,
         hashed_password=hash_password(generated_password),
         role=new_user.role,
