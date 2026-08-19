@@ -46,7 +46,6 @@ export default function UsersPage() {
   const [grantForm, setGrantForm] = useState({
     duration_hours: 8,
     new_password: "",
-    department: "",
   });
   const [form, setForm] = useState({
     username: "",
@@ -116,11 +115,11 @@ export default function UsersPage() {
         grantUser.id,
         parseInt(grantForm.duration_hours),
         grantForm.new_password || null,
-        grantForm.department || null
+        null
       );
       setGrantResult(res.data);
       setGrantOpen(false);
-      setGrantForm({ duration_hours: 8, new_password: "", department: "" });
+      setGrantForm({ duration_hours: 8, new_password: "" });
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to grant access");
@@ -340,7 +339,7 @@ export default function UsersPage() {
                                 color="success"
                                 onClick={() => {
                                   setGrantUser(u);
-                                  setGrantForm({ duration_hours: 8, new_password: "", department: u.department || "" });
+                                  setGrantForm({ duration_hours: 8, new_password: "" });
                                   setGrantOpen(true);
                                 }}
                               >
@@ -484,20 +483,6 @@ export default function UsersPage() {
             Granting access will generate a new one-time password for {grantUser?.username}. The
             user will only be able to login for the specified duration.
           </Typography>
-          <TextField
-            select
-            label="Department (controls which Work Instructions this user can see)"
-            fullWidth
-            value={grantForm.department}
-            onChange={(e) => setGrantForm({ ...grantForm, department: e.target.value })}
-            margin="normal"
-          >
-            {DEPARTMENTS.map((d) => (
-              <MenuItem key={d} value={d}>
-                {d}
-              </MenuItem>
-            ))}
-          </TextField>
           <TextField
             select
             label="Access Duration"
