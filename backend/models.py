@@ -78,7 +78,7 @@ class WorkInstruction(Base):
     supervisor_approval_required = Column(Boolean, default=False)
     qa_approval_required = Column(Boolean, default=False)
     revision_history = Column(Text, nullable=True)
-    file_path = Column(String(500), nullable=True)
+    file_path = Column(String(500), nullable=True, unique=True)
     is_archived = Column(Boolean, default=False)
     is_latest = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

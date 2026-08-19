@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 
 from backend.database import get_db
@@ -85,7 +86,6 @@ def scan_and_populate_pdfs(db: Session):
         ).all()
     )
 
-    new_records = []
     for lang, folder in LANGUAGE_FOLDERS.items():
         if not folder.exists():
             continue
@@ -126,11 +126,16 @@ def scan_and_populate_pdfs(db: Session):
                 procedure=body_text,
                 file_path=file_path_key,
             )
-            new_records.append(record)
-
-    if new_records:
-        db.add_all(new_records)
-        db.commit()
+            # Insert and commit one file at a time so a unique-constraint
+            # violation from a concurrent request (e.g. two serverless
+            # invocations scanning at once) only rolls back this single
+            # record instead of the whole batch, and is silently skipped
+            # rather than producing a duplicate row.
+            db.add(record)
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
 
     # Update cache
     _pdf_scan_cache["mtime"] = current_mtime
