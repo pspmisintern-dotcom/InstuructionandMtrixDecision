@@ -217,11 +217,24 @@ export default function WorkInstructionDetailPage() {
           }}
         >
           <PictureAsPdf color="error" />
-          <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+          <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ flexGrow: 1 }}>
             {pdfLoading
               ? `Converting document to ${languageLabel} PDF...`
               : `Viewing: ${cleanTitle(wi.title)} (${languageLabel})`}
           </Typography>
+          {pdfUrl && (
+            <Button
+              component="a"
+              href={pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="small"
+              variant="outlined"
+              sx={{ textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+            >
+              Open PDF
+            </Button>
+          )}
         </Box>
 
         {pdfLoading ? (

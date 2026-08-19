@@ -22,7 +22,7 @@ DATA_ROOT = PROJECT_ROOT / "data"
 LANGUAGE_FOLDERS = {
     "en": DATA_ROOT / "English Data",
     "hi": DATA_ROOT / "HIndi data",
-    "mr": DATA_ROOT / "Marathi data",
+    "mr": DATA_ROOT / "Marathi Data",
 }
 
 FALLBACK_DATA_DIRS = [
@@ -46,6 +46,7 @@ def extract_title_from_pdf(filename: str, lang: str) -> str:
     name = re.sub(r"\.pdf$", "", filename, flags=re.IGNORECASE)
     name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"_Marathi$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"\.en\.(hi|mr)$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*to[_\s]+", "To ", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
@@ -95,8 +96,11 @@ def scan_and_populate_pdfs(db: Session):
             if lang != "en":
                 lang_suffix = {"hi": "hindi", "mr": "marathi"}.get(lang, lang).lower()
                 file_lower = pdf_file.name.lower()
-                # Only include if filename contains the language suffix (case-insensitive)
-                if lang_suffix not in file_lower:
+                # Only include if filename contains the language suffix (case-insensitive),
+                # e.g. "..._Marathi.pdf", or the short-code suffix used by some translated
+                # files, e.g. "....en.mr.pdf"
+                short_suffix = f".{lang}."
+                if lang_suffix not in file_lower and short_suffix not in file_lower:
                     continue
 
             file_path_key = f"pdf:{lang}:{pdf_file.name}"
@@ -177,6 +181,7 @@ def clean_wi_title(wi: WorkInstruction) -> str:
     name = re.sub(r"\.pdf$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"_Marathi$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"\.en\.(hi|mr)$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
     name = name.replace("_", " ").replace("(", "").replace(")", "")
