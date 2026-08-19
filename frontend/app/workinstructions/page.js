@@ -20,17 +20,20 @@ import {
   Divider,
   useTheme,
 } from "@mui/material";
-import { Search, Description, OpenInNew, Download, Language as LanguageIcon } from "@mui/icons-material";
+import { Search, Description, OpenInNew, Language as LanguageIcon } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import PageHeader from "../../components/PageHeader";
 import { workInstructionApi } from "../../lib/api";
 import { useLanguage, LANGUAGES } from "../../context/LanguageContext";
+import { useAuth } from "../../context/AuthContext";
 
 function WorkInstructionsContent() {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { language, setLanguage, languageLabel } = useLanguage();
+  const { user } = useAuth();
+  const isOperator = user?.role === "operator";
   const [wis, setWis] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [search, setSearch] = useState("");
@@ -76,22 +79,6 @@ function WorkInstructionsContent() {
   const getLanguageLabel = (lang) => {
     const found = LANGUAGES.find((l) => l.code === lang);
     return found ? found.label : lang === "en" ? "English" : lang === "hi" ? "Hindi" : "Marathi";
-  };
-
-  const handleDownload = async (wi) => {
-    try {
-      const res = await workInstructionApi.pdf(wi.id, language);
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `${wi.wi_number || "work-instruction"}_${language}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err.response?.data?.detail || "Failed to download PDF");
-    }
   };
 
   const filtered = wis.filter((wi) => {
@@ -154,20 +141,29 @@ function WorkInstructionsContent() {
             </MenuItem>
           ))}
         </TextField>
-        <TextField
-          select
-          label="Department"
-          value={department}
-          onChange={(e) => setDepartment(e.target.value)}
-          sx={{ minWidth: 200 }}
-        >
-          <MenuItem value="">All</MenuItem>
-          {departments.map((d) => (
-            <MenuItem key={d} value={d}>
-              {d}
-            </MenuItem>
-          ))}
-        </TextField>
+        {isOperator ? (
+          <Chip
+            label={`Department: ${user?.department || "Unassigned"}`}
+            color="primary"
+            variant="outlined"
+            sx={{ alignSelf: "center", fontWeight: 600 }}
+          />
+        ) : (
+          <TextField
+            select
+            label="Department"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="">All</MenuItem>
+            {departments.map((d) => (
+              <MenuItem key={d} value={d}>
+                {d}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
       </Box>
 
       {loading ? (
@@ -216,7 +212,7 @@ function WorkInstructionsContent() {
                         </Box>
                       </CardContent>
                       <Divider />
-                      <CardActions sx={{ p: 1.5, justifyContent: "space-between" }}>
+                      <CardActions sx={{ p: 1.5, justifyContent: "flex-start" }}>
                         <Button
                           size="small"
                           startIcon={<OpenInNew />}
@@ -224,14 +220,6 @@ function WorkInstructionsContent() {
                           sx={{ color: "#0D47A1", fontWeight: 700 }}
                         >
                           Open
-                        </Button>
-                        <Button
-                          size="small"
-                          startIcon={<Download />}
-                          onClick={() => handleDownload(wi)}
-                          sx={{ color: "#2196F3", fontWeight: 700 }}
-                        >
-                          Download
                         </Button>
                       </CardActions>
                     </Card>

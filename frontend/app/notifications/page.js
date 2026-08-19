@@ -49,6 +49,7 @@ import {
 } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { notificationApi, userApi } from "../../lib/api";
+import { parseServerDate } from "../../lib/dateUtils";
 import { useAuth } from "../../context/AuthContext";
 
 export default function NotificationsPage() {
@@ -143,6 +144,7 @@ export default function NotificationsPage() {
     try {
       await notificationApi.delete(id);
       await loadNotifs();
+      await loadSentNotifs();
     } catch (err) {
       setSnackbar({ open: true, message: err.response?.data?.detail || "Failed to delete notification.", severity: "error" });
     } finally {
@@ -320,6 +322,7 @@ export default function NotificationsPage() {
                     <TableCell>Severity</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Sent At</TableCell>
+                    {isAdmin && <TableCell align="right">Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -349,9 +352,26 @@ export default function NotificationsPage() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption" color="text.secondary">
-                          {new Date(n.created_at).toLocaleString()}
+                          {parseServerDate(n.created_at).toLocaleString()}
                         </Typography>
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell align="right">
+                          <Tooltip title="Delete notification">
+                            <span>
+                              <IconButton
+                                edge="end"
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteOne(n.id)}
+                                disabled={deletingId === n.id}
+                              >
+                                {deletingId === n.id ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -386,7 +406,7 @@ export default function NotificationsPage() {
                     <>
                       {n.message}
                       <Box component="span" sx={{ display: "block", color: "text.disabled", mt: 0.5 }}>
-                        {new Date(n.created_at).toLocaleString()}
+                        {parseServerDate(n.created_at).toLocaleString()}
                       </Box>
                     </>
                   }

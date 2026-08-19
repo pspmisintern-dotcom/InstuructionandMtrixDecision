@@ -27,23 +27,9 @@ import {
 import { Add, Delete, LockOpen, Lock, ContentCopy, SmartToy } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
+import { parseServerDate } from "../../lib/dateUtils";
 
-const DEPARTMENTS = [
-  "Grinding",
-  "Masking",
-  "Spraying",
-  "Production",
-  "HR",
-  "Maintenance",
-  "Sales",
-  "Quality Assurance",
-  "Calibration",
-  "Marketing",
-  "Purchase",
-  "Inspection",
-  "Packing",
-  "Training",
-];
+const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Marketing", "Change control", "Purchase", "Maintenance", "Quality", "Sales", "QMS"];
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -57,6 +43,7 @@ export default function UsersPage() {
   const [grantForm, setGrantForm] = useState({
     duration_hours: 8,
     new_password: "",
+    department: "",
   });
   const [form, setForm] = useState({
     username: "",
@@ -116,11 +103,12 @@ export default function UsersPage() {
       const res = await authApi.grantAccess(
         grantUser.id,
         parseInt(grantForm.duration_hours),
-        grantForm.new_password || null
+        grantForm.new_password || null,
+        grantForm.department || null
       );
       setGrantResult(res.data);
       setGrantOpen(false);
-      setGrantForm({ duration_hours: 8, new_password: "" });
+      setGrantForm({ duration_hours: 8, new_password: "", department: "" });
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to grant access");
@@ -168,8 +156,9 @@ export default function UsersPage() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString();
+    const d = parseServerDate(dateStr);
+    if (!d || isNaN(d.getTime())) return "-";
+    return d.toLocaleString();
   };
 
   return (
@@ -326,6 +315,7 @@ export default function UsersPage() {
                                 color="success"
                                 onClick={() => {
                                   setGrantUser(u);
+                                  setGrantForm({ duration_hours: 8, new_password: "", department: u.department || "" });
                                   setGrantOpen(true);
                                 }}
                               >
@@ -445,6 +435,20 @@ export default function UsersPage() {
             Granting access will generate a new one-time password for {grantUser?.username}. The
             user will only be able to login for the specified duration.
           </Typography>
+          <TextField
+            select
+            label="Department (controls which Work Instructions this user can see)"
+            fullWidth
+            value={grantForm.department}
+            onChange={(e) => setGrantForm({ ...grantForm, department: e.target.value })}
+            margin="normal"
+          >
+            {DEPARTMENTS.map((d) => (
+              <MenuItem key={d} value={d}>
+                {d}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField
             select
             label="Access Duration"

@@ -10,12 +10,25 @@ from backend.models import User, AuditLog
 from backend.security import verify_password, hash_password
 from backend.auth import create_access_token, get_current_user
 from backend.ip_validator import is_ip_allowed, get_client_ip_from_request, format_ip_ranges_for_display
+from backend.departments import DEPARTMENTS
+from backend.emailer import send_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 ADMIN_FIXED_USERNAME = "admin"
-ADMIN_FIXED_PASSWORD = "admin123"
-DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
+ADMIN_FIXED_PASSWORD = "plasma@1234"
+
+# ---------------------------------------------------------------------------
+# Admin 2FA (email one-time code) -- DISABLED for now, kept for easy re-enable.
+# ---------------------------------------------------------------------------
+OTP_LENGTH = 6
+OTP_EXPIRE_MINUTES = 5
+OTP_MAX_ATTEMPTS = 5
+ADMIN_2FA_ENABLED = False
+
+
+def generate_otp_code() -> str:
+    return "".join(str(secrets.randbelow(10)) for _ in range(OTP_LENGTH))
 
 
 def generate_random_password(length: int = 12) -> str:
@@ -41,11 +54,19 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    access_token: str
+    access_token: Optional[str] = None
     token_type: str = "bearer"
-    user: dict
+    user: Optional[dict] = None
     must_change_password: bool = False
     message: str = ""
+    # True when the password check passed but a second factor (emailed OTP)
+    # is still required before a token is issued -- see /auth/verify-otp.
+    otp_required: bool = False
+
+
+class VerifyOtpRequest(BaseModel):
+    username: str
+    otp: str
 
 
 class RegisterRequest(BaseModel):
@@ -70,6 +91,7 @@ class GrantAccessRequest(BaseModel):
     user_id: int
     duration_hours: int = 8          # how long the session lasts
     new_password: Optional[str] = None   # leave blank to auto-generate
+    department: Optional[str] = None     # admin picks which department's WIs this user can see
 
 
 class RevokeAccessRequest(BaseModel):
@@ -243,15 +265,54 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
             )
             db.add(admin)
             db.flush()
+        # Keep the stored hash in sync with the fixed password constant so
+        # the DB row never has a stale hash from a previous password value.
+        if not verify_password(ADMIN_FIXED_PASSWORD, admin.hashed_password):
+            admin.hashed_password = hash_password(ADMIN_FIXED_PASSWORD)
         if not admin.is_active:
             raise HTTPException(status_code=403, detail="Admin account is deactivated. Contact the administrator.")
         client_ip = get_client_ip_from_request(request)
+
+        if ADMIN_2FA_ENABLED:
+            # Password check passed -- require the emailed one-time code
+            # before issuing a token (2FA for the admin account).
+            otp = generate_otp_code()
+            admin.otp_code_hash = hash_password(otp)
+            admin.otp_expires_at = datetime.utcnow() + timedelta(minutes=OTP_EXPIRE_MINUTES)
+            admin.otp_attempts = 0
+            db.add(AuditLog(
+                user_id=admin.id,
+                action="LOGIN_OTP_SENT",
+                detail=f"Admin password verified from IP {client_ip}; one-time code emailed to {admin.email}.",
+            ))
+            db.commit()
+
+            sent = send_email(
+                admin.email,
+                subject="Your WI Manager admin login code",
+                body=(
+                    f"Your one-time login code is: {otp}\n\n"
+                    f"It expires in {OTP_EXPIRE_MINUTES} minutes. "
+                    "If you did not attempt to log in, contact IT immediately."
+                ),
+            )
+            if not sent:
+                # SMTP not configured / failed -- the code was logged to the
+                # server console by emailer.send_email so the admin isn't locked
+                # out during setup, but this should be fixed via SMTP_* env vars.
+                print(f"[auth] WARNING: admin OTP email delivery failed/not configured; code logged above.")
+
+            return LoginResponse(
+                otp_required=True,
+                message=f"A one-time login code has been sent to {admin.email}. Please enter it to continue.",
+            )
+
         token = create_access_token({"sub": str(admin.id), "role": "admin"})
         admin.last_access_ip = client_ip
         db.add(AuditLog(
             user_id=admin.id,
             action="LOGIN",
-            detail=f"Admin logged in from IP {client_ip}."
+            detail=f"Admin logged in from IP {client_ip}.",
         ))
         db.commit()
         return LoginResponse(
@@ -363,6 +424,79 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
+# POST /auth/verify-otp  — completes admin login after a password check
+# ---------------------------------------------------------------------------
+
+@router.post("/verify-otp", response_model=LoginResponse)
+def verify_otp(req: VerifyOtpRequest, request: Request, db: Session = Depends(get_db)):
+    """
+    Second step of admin login: exchanges the emailed one-time code for an
+    access token. Only applies to the admin account -- other roles never set
+    otp_code_hash and so always fail this check.
+    """
+    user = db.query(User).filter(User.username == req.username).first()
+    if not user or not user.otp_code_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No pending one-time code for this account. Please log in again.",
+        )
+
+    if not user.otp_expires_at or user.otp_expires_at < datetime.utcnow():
+        user.otp_code_hash = None
+        user.otp_expires_at = None
+        user.otp_attempts = 0
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This one-time code has expired. Please log in again to receive a new one.",
+        )
+
+    if user.otp_attempts >= OTP_MAX_ATTEMPTS:
+        user.otp_code_hash = None
+        user.otp_expires_at = None
+        user.otp_attempts = 0
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Too many incorrect attempts. Please log in again to receive a new code.",
+        )
+
+    if not verify_password(req.otp, user.otp_code_hash):
+        user.otp_attempts += 1
+        db.add(AuditLog(
+            user_id=user.id,
+            action="LOGIN_OTP_FAILED",
+            detail=f"Incorrect one-time code entered for '{user.username}' (attempt {user.otp_attempts}).",
+        ))
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Incorrect code. {OTP_MAX_ATTEMPTS - user.otp_attempts} attempt(s) remaining.",
+        )
+
+    # Correct code -- clear the OTP state and issue the token.
+    user.otp_code_hash = None
+    user.otp_expires_at = None
+    user.otp_attempts = 0
+
+    client_ip = get_client_ip_from_request(request)
+    token = create_access_token({"sub": str(user.id), "role": user.role})
+    user.last_access_ip = client_ip
+    db.add(AuditLog(
+        user_id=user.id,
+        action="LOGIN",
+        detail=f"Admin logged in from IP {client_ip} (2FA verified).",
+    ))
+    db.commit()
+
+    return LoginResponse(
+        access_token=token,
+        user=_user_dict(user),
+        must_change_password=False,
+    )
+
+
+# ---------------------------------------------------------------------------
 # POST /auth/grant-access  — admin only
 # ---------------------------------------------------------------------------
 
@@ -388,6 +522,14 @@ def grant_access(
     if user.role == "admin":
         raise HTTPException(status_code=400, detail="Cannot grant access to another admin.")
 
+    if req.department is not None:
+        if req.department not in DEPARTMENTS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid department. Must be one of: {', '.join(DEPARTMENTS)}",
+            )
+        user.department = req.department
+
     # Generate or use the provided password
     if req.new_password:
         otp = req.new_password
@@ -407,7 +549,8 @@ def grant_access(
         action="GRANT_ACCESS",
         detail=(
             f"Admin '{current_user.username}' granted access to '{user.username}' "
-            f"for {req.duration_hours} hours with a new one-time password."
+            f"for {req.duration_hours} hours with a new one-time password"
+            f"{f' (department set to {user.department})' if req.department else ''}."
         ),
     ))
     db.commit()
@@ -415,6 +558,7 @@ def grant_access(
     return {
         "message": f"Access granted to {user.full_name} for {req.duration_hours} hours.",
         "username": user.username,
+        "department": user.department,
         "one_time_password": otp,          # admin shares this with the user
         "access_expires_at": user.access_expires_at,
         "must_change_password": True,
@@ -620,6 +764,7 @@ def change_password(
 class ToggleAccessRequest(BaseModel):
     user_id: int
     duration_hours: int = 8  # duration if granting access
+    department: Optional[str] = None  # admin picks which department's WIs this user can see
 
 
 @router.post("/toggle-access")
@@ -667,6 +812,14 @@ def toggle_access(
         }
     else:
         # Currently OFF → turn ON (grant with new password)
+        if req.department is not None:
+            if req.department not in DEPARTMENTS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid department. Must be one of: {', '.join(DEPARTMENTS)}",
+                )
+            user.department = req.department
+
         otp = secrets.token_urlsafe(8)
         user.hashed_password = hash_password(otp)
         user.access_granted = True
@@ -680,7 +833,8 @@ def toggle_access(
             action="TOGGLE_ACCESS_ON",
             detail=(
                 f"Admin '{current_user.username}' granted access to '{user.username}' "
-                f"for {req.duration_hours} hours via toggle."
+                f"for {req.duration_hours} hours via toggle"
+                f"{f' (department set to {user.department})' if req.department else ''}."
             ),
         ))
         db.commit()
@@ -689,6 +843,7 @@ def toggle_access(
             "message": f"Access granted to {user.full_name} for {req.duration_hours} hours.",
             "access_granted": True,
             "username": user.username,
+            "department": user.department,
             "one_time_password": otp,
             "access_expires_at": user.access_expires_at,
             "must_change_password": True,

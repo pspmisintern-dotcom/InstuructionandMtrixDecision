@@ -6,34 +6,9 @@ from sqlalchemy import func
 from backend.database import get_db
 from backend.models import User, WorkInstruction, AuditLog, Checklist, Notification, Report
 from backend.auth import get_current_user
+from backend.departments import DEPARTMENTS, LEGACY_DEPARTMENT_MAP
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
-
-DEPARTMENTS = [
-    "Grinding",
-    "Masking",
-    "Spraying",
-    "Production",
-    "HR",
-    "Maintenance",
-    "Sales",
-    "Quality Assurance",
-    "Calibration",
-    "Marketing",
-    "Purchase",
-    "Inspection",
-    "Packing",
-    "Training",
-]
-
-# Map legacy department names to the new canonical list
-LEGACY_DEPARTMENT_MAP = {
-    "Spray / Surface Engineering": "Spraying",
-    "Surface Engineering": "Spraying",
-    "Logistics / Stores": "Production",
-    "Quality": "Production",
-    "Safety / EHS": "Production",
-}
 
 
 @router.get("/summary")

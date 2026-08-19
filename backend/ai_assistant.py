@@ -14,6 +14,7 @@ standard "not available" message and never hallucinates.
 """
 
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ import openai
 dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
 
-from backend.knowledge_base import semantic_search
+from backend.knowledge_base import semantic_search, load_from_db, get_vectorstore
 from backend.decision_engine import decision_engine
 
 load_dotenv()
@@ -66,6 +67,20 @@ Detailed, structured answer:
 """
 
 
+_PLACEHOLDER_SUFFIX_RE = re.compile(
+    r"\s*-\s*work instruction document\s*\([a-z]+\s*version\)\.?\s*$", re.IGNORECASE
+)
+
+
+def _is_low_content_chunk(text: str) -> bool:
+    """True for the short title-only placeholder chunks (e.g. 'Grinding' /
+    'Grinding - work instruction document (English version).') that carry no
+    real procedure detail and shouldn't be used to answer a question when a
+    richer chunk is available."""
+    stripped = _PLACEHOLDER_SUFFIX_RE.sub("", text.strip())
+    return len(stripped) < 40
+
+
 def _build_offline_answer(question: str, results: List, context: Dict) -> Dict:
     """Deterministic fallback answer from retrieved documents (no LLM)."""
     if not results:
@@ -83,9 +98,21 @@ def _build_offline_answer(question: str, results: List, context: Dict) -> Dict:
         for word in q_lower.split():
             if len(word) >= 3 and word in text:
                 s += 1
+        # Prefer chunks with real procedure content over short title/summary
+        # placeholders when both match equally on keywords.
+        if not _is_low_content_chunk(doc.get("page_content", "")):
+            s += 0.5
         return s
 
     ranked = sorted(results, key=score, reverse=True)
+    # If a richer chunk exists among the top matches, prefer it over a
+    # low-content title-only placeholder even if the placeholder scored
+    # marginally higher on raw keyword overlap.
+    rich_ranked = [d for d in ranked if not _is_low_content_chunk(d.get("page_content", ""))]
+    if rich_ranked:
+        # Keep relative order, just move the richest matches to the front.
+        ranked = rich_ranked + [d for d in ranked if d not in rich_ranked]
+
     best = ranked[0]
     meta = best.get("metadata", {}) or {}
 
@@ -99,14 +126,18 @@ def _build_offline_answer(question: str, results: List, context: Dict) -> Dict:
     overview = f"**Overview:** Answer drawn from approved Work Instruction **{clean_title}** ({wi_number}){f' - Section: {section}' if section else ''}."
 
     formatted_lines = []
-    i = 0
+    seen_lines = set()
     numbered_count = 1
-    for line in raw_lines[:30]:
+    for line in raw_lines[:40]:
         stripped = line.lstrip("-*• \t")
         stripped = stripped.lstrip("0123456789. ")
         stripped = stripped.strip()
         if not stripped:
             continue
+        dedupe_key = stripped.lower()
+        if dedupe_key in seen_lines:
+            continue
+        seen_lines.add(dedupe_key)
 
         # Detect likely section headers (short, all caps or Title Case, no long sentence structure)
         is_header = (
@@ -129,22 +160,30 @@ def _build_offline_answer(question: str, results: List, context: Dict) -> Dict:
                 bullet_mark = f"{numbered_count}."
                 numbered_count += 1
             formatted_lines.append(f" {bullet_mark} {stripped}")
-        i += 1
 
-    # If only a few lines were produced, pull in more results
+    # If only a few lines were produced, pull in more results from richer
+    # chunks (skip low-content placeholders and duplicates of the WI already used)
     if len(formatted_lines) < 8:
-        for extra_doc in ranked[1:3]:
+        used_wis = {wi_number}
+        for extra_doc in ranked[1:]:
+            if len(formatted_lines) >= 20:
+                break
             extra_meta = extra_doc.get("metadata", {}) or {}
+            extra_wi = extra_meta.get("wi_number", "WI")
+            if extra_wi in used_wis or _is_low_content_chunk(extra_doc.get("page_content", "")):
+                continue
+            used_wis.add(extra_wi)
             extra_snippet = extra_doc.get("page_content", "").strip()
             extra_lines = [l.strip() for l in extra_snippet.splitlines() if l.strip()]
             if not extra_lines:
                 continue
             extra_title = extra_meta.get("title", "Work Instruction").replace("Work Instruction for", "").replace("Work Instruction", "").strip()
-            extra_wi = extra_meta.get("wi_number", "WI")
             formatted_lines.append(f"\n**Additional Reference — {extra_title} ({extra_wi}):**")
+            extra_seen = set()
             for line in extra_lines[:10]:
                 stripped = line.lstrip("-*• \t0123456789.").strip()
-                if stripped:
+                if stripped and stripped.lower() not in extra_seen:
+                    extra_seen.add(stripped.lower())
                     formatted_lines.append(f" - {stripped}")
 
     body = "\n".join(formatted_lines)
@@ -256,7 +295,7 @@ def _build_openai_answer(question: str, results: List[dict], context: Dict) -> D
 
 
 def get_llm_provider():
-    return os.getenv("LLM_PROVIDER", "ollama").lower()
+    return os.getenv("LLM_PROVIDER", "offline").lower()
 
 def get_ollama_model():
     return os.getenv("OLLAMA_MODEL", "llama2")
@@ -354,7 +393,7 @@ def _build_llm_answer(question: str, context: Dict) -> Dict:
 
     if provider == "ollama":
         return _build_ollama_answer(question, results, context)
-    if openai_key:
+    if provider == "openai" and openai_key:
         return _build_openai_answer(question, results, context)
     return _build_offline_answer(question, results, context)
 
@@ -363,12 +402,25 @@ def ask_question(question: str, context: Optional[Dict] = None) -> Dict:
     """Entry point: answer a question using the RAG pipeline."""
     context = context or {}
 
+    # The knowledge base is intentionally NOT built at app startup (to keep
+    # cold starts fast on the serverless backend), so it must be lazily
+    # loaded here on first use. load_from_db() is a no-op once the
+    # in-process vectorstore is already populated.
+    if get_vectorstore() is None:
+        load_from_db()
+
     # Always do semantic search first regardless of mode
     results = semantic_search(question, k=6)
     provider = get_llm_provider()
     openai_key = os.getenv("OPENAI_API_KEY", "")
 
-    if provider == "ollama" or openai_key:
+    # Only attempt a network call to an LLM provider when one is explicitly
+    # configured and reachable in principle (Ollama base URL set, or an
+    # OpenAI key present). Otherwise go straight to the offline RAG answer --
+    # previously this defaulted to "ollama" even with no server configured,
+    # which meant every question hung on two 30s-timeout calls before
+    # falling back to this same offline answer anyway.
+    if provider == "ollama" or (provider == "openai" and openai_key):
         try:
             return _build_llm_answer(question, context)
         except Exception as e:

@@ -1,8 +1,14 @@
 """
 migrate_departments.py
 
-Updates existing database records to use the new canonical department names:
-Grinding, Masking, Spraying, Production
+SUPERSEDED: the canonical department list and mapping logic now live in
+backend/departments.py. This script's old DEPT_MAP incorrectly mapped
+"Quality" -> "Production", which was the root cause of quality-related work
+instructions losing their department. Kept here as a historical record only
+-- do not re-run against a DB that already uses backend/departments.py's
+LEGACY_DEPARTMENT_MAP (dashboard_routes.py normalizes legacy names on read),
+and use backend/fix_quality_departments.py for the WI-44/47/37/31/39/30/26/
+23/12/11/10 -> Quality correction instead.
 """
 
 import sys
@@ -17,14 +23,17 @@ from backend.database import SessionLocal
 from backend.models import WorkInstruction, User
 from sqlalchemy import func
 
-# Map old department names to new canonical ones
+# Map old department names to new canonical ones (Quality no longer maps to
+# Production -- see backend/departments.py for the current canonical mapping)
 DEPT_MAP = {
     "Spray / Surface Engineering": "Spraying",
     "Surface Engineering": "Spraying",
     "Blasting": "Spraying",
     "Logistics / Stores": "Production",
-    "Quality": "Production",
     "Safety / EHS": "Production",
+    "Quality Assurance": "Quality",
+    "Inspection": "Quality",
+    "Calibration": "Quality",
 }
 
 

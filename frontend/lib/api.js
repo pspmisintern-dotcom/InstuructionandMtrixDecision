@@ -4,6 +4,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 20000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -39,9 +40,15 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: (username, password) => api.post("/auth/login", { username, password }),
+  verifyOtp: (username, otp) => api.post("/auth/verify-otp", { username, otp }),
   me: () => api.get("/auth/me"),
-  grantAccess: (userId, durationHours, newPassword) =>
-    api.post("/auth/grant-access", { user_id: userId, duration_hours: durationHours, new_password: newPassword }),
+  grantAccess: (userId, durationHours, newPassword, department) =>
+    api.post("/auth/grant-access", {
+      user_id: userId,
+      duration_hours: durationHours,
+      new_password: newPassword,
+      department: department || null,
+    }),
   revokeAccess: (userId) => api.post("/auth/revoke-access", { user_id: userId }),
   grantAIAssistant: (userId) => api.post("/auth/grant-ai-assistant", { user_id: userId }),
   revokeAIAssistant: (userId) => api.post("/auth/revoke-ai-assistant", { user_id: userId }),

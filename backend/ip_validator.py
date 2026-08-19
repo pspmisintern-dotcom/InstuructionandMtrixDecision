@@ -14,15 +14,30 @@ dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
 
 
+_parsed_ranges_cache = None
+_parsed_ranges_cache_key = None
+
+
 def parse_allowed_ranges() -> List:
     """
     Parse ALLOWED_IP_RANGES from .env into a list of network objects.
     Returns empty list if not configured or invalid.
+
+    Cached by the raw env value so this doesn't re-parse/rebuild
+    ipaddress.ip_network objects on every single request (this is called
+    from the network-gate middleware on every request, including login).
     """
+    global _parsed_ranges_cache, _parsed_ranges_cache_key
     ranges_str = os.getenv("ALLOWED_IP_RANGES", "")
+
+    if _parsed_ranges_cache is not None and _parsed_ranges_cache_key == ranges_str:
+        return _parsed_ranges_cache
+
     if not ranges_str.strip():
-        return []
-    
+        _parsed_ranges_cache = []
+        _parsed_ranges_cache_key = ranges_str
+        return _parsed_ranges_cache
+
     networks = []
     for cidr in ranges_str.split(","):
         cidr = cidr.strip()
@@ -33,8 +48,10 @@ def parse_allowed_ranges() -> List:
             networks.append(ipaddress.ip_network(cidr, strict=False))
         except ValueError as e:
             print(f"[ip_validator] Invalid CIDR range '{cidr}': {e}")
-    
-    return networks
+
+    _parsed_ranges_cache = networks
+    _parsed_ranges_cache_key = ranges_str
+    return _parsed_ranges_cache
 
 
 def is_factory_network_enabled() -> bool:

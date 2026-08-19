@@ -24,7 +24,17 @@ connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args, echo=False)
+# pool_pre_ping avoids surfacing errors from stale/dropped connections (e.g.
+# after Neon suspends an idle serverless Postgres compute) by testing the
+# connection with a lightweight ping before handing it out, transparently
+# reconnecting instead of failing the request.
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 print(f"[database] DATABASE_URL={DATABASE_URL}")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

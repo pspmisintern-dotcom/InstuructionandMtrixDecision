@@ -8,5 +8,11 @@
       "root": ".",
       "entrypoint": "backend.main:app"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/health-db",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

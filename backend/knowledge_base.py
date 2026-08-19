@@ -18,10 +18,6 @@ from dotenv import load_dotenv
 dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
 
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
-
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -37,6 +33,12 @@ def get_embedding_model():
     global _embedding_model
     if _embedding_model is not None:
         return _embedding_model
+
+    # Imported lazily: sentence-transformers pulls in transformers/torch, a
+    # multi-hundred-MB import graph that would otherwise load on every cold
+    # start (including for requests that never touch the AI assistant, like
+    # login) since this module is imported transitively from main.py.
+    from sentence_transformers import SentenceTransformer
 
     try:
         _embedding_model = SentenceTransformer(OPENAI_EMBEDDING_MODEL)
@@ -98,6 +100,9 @@ def build_vectorstore(documents: List[dict]):
         _vectorstore = None
         return None
 
+    import faiss
+    import numpy as np
+
     embedding_model = get_embedding_model()
     texts = [doc["page_content"] for doc in documents]
     embeddings = embedding_model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
@@ -112,6 +117,8 @@ def build_vectorstore(documents: List[dict]):
 def semantic_search(query: str, k: int = 5) -> List[dict]:
     if _vectorstore is None or not _documents:
         return []
+    import numpy as np
+
     embedding_model = get_embedding_model()
     query_embedding = embedding_model.encode([query], convert_to_numpy=True, show_progress_bar=False).astype(np.float32)
     distances, indices = _vectorstore.search(query_embedding, min(k, len(_documents)))
@@ -196,10 +203,19 @@ def load_from_db():
                 "department": wi.department or "",
                 "file_path": wi.file_path or "",
             }
-            combined = _clean_combined_text(
-                f"{cleaned_title}\n{wi.scope or ''}\n{wi.ppe or ''}\n{wi.procedure or ''}"
-            )
-            docs.append({"page_content": combined, "metadata": dict(base_meta)})
+            # Short summary doc (title/scope/ppe) — cheap to match on general
+            # "what is this WI about" style questions.
+            summary = _clean_combined_text(f"{cleaned_title}\n{wi.scope or ''}\n{wi.ppe or ''}")
+            docs.append({"page_content": summary, "metadata": dict(base_meta)})
+
+            # The full extracted document body (from PDF text extraction, or
+            # the docx-parsed procedure text) is often long, so it must be
+            # chunked -- otherwise it gets truncated by the embedding model's
+            # input length and most of the document becomes unsearchable.
+            if wi.procedure:
+                for chunk in _chunk_text(wi.procedure):
+                    docs.append({"page_content": chunk, "metadata": dict(base_meta)})
+
             for sec in wi.sections:
                 meta = dict(base_meta)
                 meta["section"] = sec.heading.replace("_", " ").title()

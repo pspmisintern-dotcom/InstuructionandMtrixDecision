@@ -36,6 +36,13 @@ class User(Base):
     # Track last login IP address for security auditing
     last_access_ip = Column(String(45), nullable=True)  # IPv4 or IPv6
 
+    # Email-based 2FA (currently enforced for admin only, see auth_routes.py).
+    # otp_code_hash stores a bcrypt hash of the current one-time code, never
+    # the code itself, mirroring how hashed_password is stored.
+    otp_code_hash = Column(String(300), nullable=True)
+    otp_expires_at = Column(DateTime, nullable=True)
+    otp_attempts = Column(Integer, default=0)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     audit_logs = relationship("AuditLog", back_populates="user")

@@ -51,10 +51,13 @@ const fadeUp = (delay = 0) => ({
 });
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, verifyOtp } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otpMessage, setOtpMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,8 +68,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(username, password);
-      router.push("/dashboard");
+      const result = await login(username, password);
+      if (result?.otpRequired) {
+        setOtpRequired(true);
+        setOtpMessage(result.message || "Enter the one-time code sent to your email.");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(err.response?.data?.detail || "Invalid credentials. Please try again.");
       setShake(true);
@@ -74,6 +82,29 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await verifyOtp(username, otp);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Incorrect code. Please try again.");
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackToLogin = () => {
+    setOtpRequired(false);
+    setOtp("");
+    setError("");
+    setOtpMessage("");
   };
 
   return (
@@ -242,10 +273,10 @@ export default function LoginPage() {
           </Box>
 
           <Typography variant="h5" fontWeight={800} color="#0D47A1" sx={{ mb: 0.5, ...fadeUp(0.12) }}>
-            Welcome back
+            {otpRequired ? "Verify your identity" : "Welcome back"}
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3, fontSize: 14, ...fadeUp(0.18) }}>
-            Sign in to your account to continue
+            {otpRequired ? otpMessage : "Sign in to your account to continue"}
           </Typography>
 
           {error && (
@@ -254,6 +285,60 @@ export default function LoginPage() {
             </Alert>
           )}
 
+          {otpRequired ? (
+            <form onSubmit={handleVerifyOtp} autoComplete="off">
+              <Box sx={fadeUp(0.24)}>
+                <TextField
+                  fullWidth
+                  label="6-digit code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  margin="normal"
+                  required
+                  autoComplete="one-time-code"
+                  name="otp"
+                  inputProps={{ inputMode: "numeric", maxLength: 6 }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      transition: "box-shadow 0.2s ease, transform 0.2s ease",
+                      "&.Mui-focused": { boxShadow: "0 0 0 4px rgba(33,150,243,0.15)", transform: "translateY(-1px)" },
+                    },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Shield sx={{ color: "#2196F3" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box sx={fadeUp(0.3)}>
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  disabled={loading || otp.length !== 6}
+                  endIcon={!loading && <ArrowForward />}
+                  sx={{
+                    mt: 3, py: 1.4, borderRadius: 2, fontWeight: 700, fontSize: 16,
+                    background: "linear-gradient(135deg, #0D47A1 0%, #2196F3 100%)",
+                    boxShadow: "0 8px 24px rgba(13, 71, 161, 0.3)",
+                    "&:hover": { boxShadow: "0 12px 32px rgba(13, 71, 161, 0.45)", transform: "translateY(-1px)" },
+                  }}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : "Verify & Sign In"}
+                </Button>
+              </Box>
+              <Box sx={{ mt: 2, textAlign: "center" }}>
+                <Button variant="text" size="small" onClick={handleBackToLogin} disabled={loading}>
+                  Back to login
+                </Button>
+              </Box>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} autoComplete="off">
             <Box sx={fadeUp(0.24)}>
               <TextField
@@ -348,6 +433,7 @@ export default function LoginPage() {
               </Button>
             </Box>
           </form>
+          )}
         </Paper>
         </Box>
       </Box>

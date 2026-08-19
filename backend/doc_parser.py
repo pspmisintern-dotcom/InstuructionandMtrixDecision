@@ -191,15 +191,15 @@ def is_heading_line(line: str) -> Optional[str]:
 
 
 def determine_department(filename: str) -> str:
-    """Infer department from filename keywords."""
-    lower = filename.lower()
-    if any(k in lower for k in ["grind", "abrasive", "wheel", "surface finish", "polish"]):
-        return "Grinding"
-    if any(k in lower for k in ["mask", "tape", "cover", "protect"]):
-        return "Masking"
-    if any(k in lower for k in ["spray", "blasting", "coating", "paint", "thermal", "hvof", "plasma", "twas", "pta"]):
-        return "Spraying"
-    return "Production"
+    """Infer department from filename keywords.
+
+    Delegates to the shared classifier in backend.departments so that
+    documents parsed via seed.py end up in the same department as PDFs
+    scanned by workinstruction_routes.scan_and_populate_pdfs — previously
+    these were two separate keyword lists that disagreed with each other.
+    """
+    from backend.departments import determine_department_from_filename
+    return determine_department_from_filename(filename)
 
 
 def parse_work_instruction(docx_path: str) -> Dict:

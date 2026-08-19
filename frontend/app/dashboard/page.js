@@ -40,6 +40,7 @@ import {
 import Layout from "../../components/Layout";
 import { useAuth } from "../../context/AuthContext";
 import { dashboardApi } from "../../lib/api";
+import { parseServerDate } from "../../lib/dateUtils";
 
 const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Marketing", "Change control", "Purchase", "Maintenance", "Quality", "Sales", "QMS"];
 
@@ -134,17 +135,36 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    let isFirstLoad = true;
+
     const fetchData = async () => {
       try {
         const res = await dashboardApi.summary();
+        if (!isMounted) return;
         setData(res.data);
+        setError("");
       } catch (err) {
-        setError(err.response?.data?.detail || "Failed to load dashboard metrics");
+        if (!isMounted) return;
+        // Only surface an error on the initial load; a transient failure on
+        // a background poll shouldn't blank out an already-loaded dashboard.
+        if (isFirstLoad) {
+          setError(err.response?.data?.detail || "Failed to load dashboard metrics");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted && isFirstLoad) {
+          setLoading(false);
+          isFirstLoad = false;
+        }
       }
     };
+
     fetchData();
+    const intervalId = setInterval(fetchData, 45000);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   if (loading) {
@@ -487,7 +507,7 @@ export default function DashboardPage() {
                                 💬 {item.detail?.split("| A:")[0]?.replace("Q: ", "") || "AI Question"}
                               </Typography>
                             }
-                            secondary={item.time ? new Date(item.time).toLocaleTimeString() : ""}
+                            secondary={item.time ? parseServerDate(item.time).toLocaleTimeString() : ""}
                           />
                         </ListItem>
                       ))}
@@ -589,7 +609,7 @@ export default function DashboardPage() {
                         </Box>
                       }
                       secondary={
-                        act.timestamp ? new Date(act.timestamp).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : ""
+                        act.timestamp ? parseServerDate(act.timestamp).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : ""
                       }
                     />
                   </ListItem>

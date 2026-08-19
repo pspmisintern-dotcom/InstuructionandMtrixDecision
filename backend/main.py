@@ -11,11 +11,14 @@ if str(PROJECT_ROOT) not in sys.path:
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from sqlalchemy import text as sql_text
 
 from backend.database import Base, engine, SessionLocal
-from backend.knowledge_base import load_from_db
+from backend.ip_validator import is_ip_allowed, get_client_ip_from_request, format_ip_ranges_for_display
 from backend.routes import (
     auth_routes,
     dashboard_routes,
@@ -67,6 +70,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Paths that must remain reachable even from outside the factory network
+# (health checks, CORS preflight, the root status endpoint, and the
+# keep-warm cron ping which runs from Vercel's infrastructure, not the
+# factory network).
+_NETWORK_GATE_EXEMPT_PATHS = {"/", "/health", "/health-db"}
+
+
+@app.middleware("http")
+async def factory_network_gate(request: Request, call_next):
+    """Enforce factory-WiFi-only access on every request, not just at login.
+    A token obtained on-site should stop working once the device leaves the
+    allowed IP range(s) configured via FACTORY_NETWORK_ONLY/ALLOWED_IP_RANGES
+    in backend/.env."""
+    if request.method == "OPTIONS" or request.url.path in _NETWORK_GATE_EXEMPT_PATHS:
+        return await call_next(request)
+
+    client_ip = get_client_ip_from_request(request)
+    if not is_ip_allowed(client_ip):
+        return JSONResponse(
+            status_code=403,
+            content={
+                "detail": (
+                    "Access denied: this application is only accessible from the "
+                    f"factory network. Allowed ranges: {format_ip_ranges_for_display()}"
+                )
+            },
+        )
+    return await call_next(request)
+
+
 app.include_router(auth_routes.router)
 app.include_router(dashboard_routes.router)
 app.include_router(workinstruction_routes.router)
@@ -89,3 +122,20 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "OK"}
+
+
+@app.get("/health-db")
+def health_db():
+    """Lightweight DB ping used by a scheduled cron (see vercel.json) to keep
+    Neon's serverless compute from auto-suspending. Neon's default idle
+    timeout is a few minutes; once suspended, the next real request (e.g. a
+    user login) pays a multi-second wake-up penalty. Pinging this endpoint
+    every few minutes keeps the compute warm so logins stay fast."""
+    db = SessionLocal()
+    try:
+        db.execute(sql_text("SELECT 1"))
+        return {"status": "OK", "db": "warm"}
+    except Exception as e:
+        return {"status": "ERROR", "db": str(e)}
+    finally:
+        db.close()

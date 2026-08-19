@@ -26,9 +26,8 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = async (username, password) => {
-    const res = await authApi.login(username, password);
-    const { access_token, user: userData } = res.data;
+  const applySession = (data) => {
+    const { access_token, user: userData } = data;
     setToken(access_token);
     setUser(userData);
     if (typeof window !== "undefined") {
@@ -36,6 +35,21 @@ export function AuthProvider({ children }) {
       localStorage.setItem("user", JSON.stringify(userData));
     }
     return userData;
+  };
+
+  const login = async (username, password) => {
+    const res = await authApi.login(username, password);
+    if (res.data.otp_required) {
+      // Password verified but a second factor is required (admin 2FA) --
+      // no session is established yet, caller must call verifyOtp next.
+      return { otpRequired: true, message: res.data.message };
+    }
+    return applySession(res.data);
+  };
+
+  const verifyOtp = async (username, otp) => {
+    const res = await authApi.verifyOtp(username, otp);
+    return applySession(res.data);
   };
 
   const grantAccess = async (userId, durationHours, newPassword) => {

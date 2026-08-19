@@ -11,10 +11,10 @@ from backend.models import User, WorkInstruction, Section, AuditLog
 from backend.auth import get_current_user
 from backend.qr import work_instruction_qr
 from backend.pdf_converter import docx_to_translated_pdf, SUPPORTED_LANGUAGES
+from backend.departments import DEPARTMENTS, determine_department_from_filename
+from backend.pdf_text_extract import extract_pdf_text
 
 router = APIRouter(prefix="/workinstructions", tags=["workinstructions"])
-
-DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Marketing", "Change control", "Purchase", "Maintenance", "Quality", "Sales", "QMS"]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = PROJECT_ROOT / "data"
@@ -52,33 +52,6 @@ def extract_title_from_pdf(filename: str, lang: str) -> str:
     name = name.replace("_", " ").replace("(", "").replace(")", "")
     name = re.sub(r"\s+", " ", name).strip()
     return name or "Untitled Work Instruction"
-
-
-def determine_department_from_filename(filename: str) -> str:
-    lower = filename.lower()
-    if any(k in lower for k in ["grind", "abrasive", "wheel", "surface finish", "polish", "bainline"]):
-        return "Grinding"
-    if any(k in lower for k in ["mask", "tape", "cover", "protect", "masking"]):
-        return "Masking"
-    if any(k in lower for k in ["spray", "blasting", "coating", "paint", "thermal", "hvof", "plasma", "twas", "pta"]):
-        return "Spraying"
-    if any(k in lower for k in ["training", "hr", "human resource"]):
-        return "HR"
-    if "marketing" in lower:
-        return "Marketing"
-    if any(k in lower for k in ["change control", "nc product", "product control", "corrective action"]):
-        return "Change control"
-    if any(k in lower for k in ["purchase", "purchasing", "procurement"]):
-        return "Purchase"
-    if any(k in lower for k in ["maintenance", "preventive", "maint"]):
-        return "Maintenance"
-    if any(k in lower for k in ["internal audit", "internal_audit", "leadership", "continual", "annexure", "operation"]):
-        return "QMS"
-    if "sales" in lower:
-        return "Sales"
-    if any(k in lower for k in ["quality", "inspection", "calibration", "hardness", "qms", "test", "checking"]):
-        return "Quality"
-    return "Production"
 
 
 def _get_folder_mtime() -> float:
@@ -135,6 +108,10 @@ def scan_and_populate_pdfs(db: Session):
             department = determine_department_from_filename(pdf_file.name)
 
             lang_label = {"en": "English", "hi": "Hindi", "mr": "Marathi"}.get(lang, lang)
+            # Extract the actual document text so the AI Assistant has real
+            # content to search/answer from, instead of just this generic
+            # placeholder sentence.
+            body_text = extract_pdf_text(pdf_file)
             record = WorkInstruction(
                 wi_number=wi_number,
                 title=title,
@@ -142,6 +119,7 @@ def scan_and_populate_pdfs(db: Session):
                 department=department,
                 activity=title,
                 scope=f"{title} - work instruction document ({lang_label} version).",
+                procedure=body_text,
                 file_path=file_path_key,
             )
             new_records.append(record)
@@ -251,6 +229,41 @@ def wi_to_dict(wi: WorkInstruction) -> dict:
     }
 
 
+def wi_to_summary_dict(wi: WorkInstruction) -> dict:
+    """Lightweight serialization for list views — omits the large extracted
+    document-body text fields (procedure, scope, inspection, etc.) that the
+    list/checklist pages never render, since those pages only show
+    id/title/wi_number/revision/department/language and navigate to the
+    single-item endpoint for full content."""
+    lang = "en"
+    if wi.file_path and wi.file_path.startswith("pdf:"):
+        parts = wi.file_path.split(":", 2)
+        if len(parts) == 3:
+            lang = parts[1]
+    return {
+        "id": wi.id,
+        "wi_number": wi.wi_number,
+        "title": clean_wi_title(wi),
+        "revision": wi.revision,
+        "department": wi.department,
+        "activity": wi.activity,
+        "file_path": wi.file_path,
+        "is_archived": wi.is_archived,
+        "is_latest": wi.is_latest,
+        "language": lang,
+    }
+
+
+def _check_department_access(wi: WorkInstruction, current_user: User):
+    """Operators may only access work instructions in their own department.
+    Admins and supervisors retain full visibility across all departments."""
+    if current_user.role == "operator" and current_user.department and wi.department != current_user.department:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have access to this department's work instructions",
+        )
+
+
 @router.get("")
 def list_work_instructions(
     q: Optional[str] = Query(None),
@@ -268,13 +281,17 @@ def list_work_instructions(
             | (WorkInstruction.wi_number.ilike(f"%{q}%"))
             | (WorkInstruction.procedure.ilike(f"%{q}%"))
         )
-    if department:
+    # Operators are restricted to their own department regardless of the
+    # department query param they pass; admins/supervisors see everything.
+    if current_user.role == "operator" and current_user.department:
+        query = query.filter(WorkInstruction.department == current_user.department)
+    elif department:
         query = query.filter(WorkInstruction.department == department)
     if lang:
         pattern = f"pdf:{lang}:%"
         query = query.filter(WorkInstruction.file_path.like(pattern))
     wis = query.order_by(WorkInstruction.department, WorkInstruction.wi_number).all()
-    return [wi_to_dict(wi) for wi in wis]
+    return [wi_to_summary_dict(wi) for wi in wis]
 
 
 @router.get("/departments")
@@ -297,6 +314,7 @@ def get_work_instruction(
     wi = db.query(WorkInstruction).filter(WorkInstruction.id == wi_id).first()
     if not wi:
         raise HTTPException(status_code=404, detail="Work Instruction not found")
+    _check_department_access(wi, current_user)
 
     sections = db.query(Section).filter(Section.work_instruction_id == wi.id).order_by(Section.order_index).all()
 
@@ -362,6 +380,7 @@ def get_work_instruction_file(
     wi = db.query(WorkInstruction).filter(WorkInstruction.id == wi_id).first()
     if not wi:
         raise HTTPException(status_code=404, detail="Work Instruction not found")
+    _check_department_access(wi, current_user)
 
     path = _resolve_document_path(wi)
     if not path:
@@ -393,6 +412,7 @@ def get_work_instruction_pdf(
     wi = db.query(WorkInstruction).filter(WorkInstruction.id == wi_id).first()
     if not wi:
         raise HTTPException(status_code=404, detail="Work Instruction not found")
+    _check_department_access(wi, current_user)
 
     pdf_path = resolve_pdf_path(wi.file_path, lang)
     if pdf_path:

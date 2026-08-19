@@ -47,6 +47,7 @@ import {
 } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { auditApi } from "../../lib/api";
+import { parseServerDate } from "../../lib/dateUtils";
 
 const ACTION_META = {
   LOGIN: { color: "#22c55e", bg: "#f0fdf4", label: "Login", icon: <LoginIcon fontSize="small" /> },
@@ -129,8 +130,8 @@ const [search, setSearch] = useState("");
       log.work_instruction?.toLowerCase().includes(search.toLowerCase());
     const matchAction = actionFilter === "ALL" || log.action === actionFilter;
     const matchRole = roleFilter === "ALL" || log.role === roleFilter;
-    const ts = new Date(log.timestamp).getTime();
-    const matchStart = !startDate || ts >= new Date(startDate).getTime();
+    const ts = parseServerDate(log.timestamp).getTime();
+    const matchStart = !startDate || ts >= new Date(startDate + "T00:00:00").getTime();
     const matchEnd = !endDate || ts <= new Date(endDate + "T23:59:59").getTime();
     return matchSearch && matchAction && matchRole && matchStart && matchEnd;
   });
@@ -139,7 +140,7 @@ const [search, setSearch] = useState("");
   const exportCSV = () => {
     const headers = ["Timestamp", "User", "Role", "Work Instruction", "Action", "Detail"];
     const rows = filtered.map((log) => [
-      new Date(log.timestamp).toLocaleString(),
+      parseServerDate(log.timestamp).toLocaleString(),
       log.user || "",
       log.role || "",
       log.work_instruction || "",
@@ -273,7 +274,7 @@ const [search, setSearch] = useState("");
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
                       <Chip size="small" label={meta.label} sx={{ bgcolor: meta.bg, color: meta.color, fontWeight: 700, fontSize: 11 }} />
                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        {new Date(log.timestamp).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+                        {parseServerDate(log.timestamp).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">• {log.user || "Unknown"}</Typography>
                       {log.work_instruction && (
@@ -321,7 +322,7 @@ const [search, setSearch] = useState("");
                       }}
                     >
                       <TableCell sx={{ fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>
-                        {new Date(log.timestamp).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+                        {parseServerDate(log.timestamp).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

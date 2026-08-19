@@ -19,5 +19,6 @@ deep-translator==1.11.4
 beautifulsoup4==4.15.0
 requests==2.34.2
 fpdf2==2.7.9
+pypdf==4.3.1
 qrcode==7.4.2
 Pillow==12.3.0  

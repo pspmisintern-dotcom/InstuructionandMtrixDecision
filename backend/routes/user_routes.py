@@ -8,11 +8,11 @@ from backend.database import get_db
 from backend.models import User, AuditLog
 from backend.auth import get_current_user, require_role
 from backend.security import hash_password
+from backend.departments import DEPARTMENTS
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 ADMIN_FIXED_USERNAME = "admin"
-DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production"]
 
 
 def generate_random_password(length: int = 12) -> str:
