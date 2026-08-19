@@ -24,7 +24,7 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { Add, Delete, LockOpen, Lock, ContentCopy, SmartToy } from "@mui/icons-material";
+import { Add, Delete, LockOpen, Lock, ContentCopy, SmartToy, Edit } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
 import { parseServerDate } from "../../lib/dateUtils";
@@ -36,6 +36,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [editForm, setEditForm] = useState({ department: "" });
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantUser, setGrantUser] = useState(null);
   const [grantResult, setGrantResult] = useState(null);
@@ -94,6 +97,17 @@ export default function UsersPage() {
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to delete user");
+    }
+  };
+
+  const handleUpdateDepartment = async () => {
+    setError("");
+    try {
+      await userApi.update(editUser.id, { department: editForm.department || null });
+      setEditOpen(false);
+      await loadUsers();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to update user");
     }
   };
 
@@ -306,6 +320,19 @@ export default function UsersPage() {
                           </IconButton>
                         </Tooltip>
                       )}
+                      <Tooltip title="Edit Department">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            setEditUser(u);
+                            setEditForm({ department: u.department || "" });
+                            setEditOpen(true);
+                          }}
+                        >
+                          <Edit />
+                        </IconButton>
+                      </Tooltip>
                       {u.role !== "admin" && (
                         <>
                           {!u.access_granted ? (
@@ -421,6 +448,37 @@ export default function UsersPage() {
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleCreate}>
             Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Department Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Department for {editUser?.full_name || ""}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Changes which Work Instructions {editUser?.username} can see. Takes effect
+            immediately, without resetting their password or login access.
+          </Typography>
+          <TextField
+            select
+            label="Department"
+            fullWidth
+            value={editForm.department}
+            onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+            margin="normal"
+          >
+            {DEPARTMENTS.map((d) => (
+              <MenuItem key={d} value={d}>
+                {d}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleUpdateDepartment}>
+            Save
           </Button>
         </DialogActions>
       </Dialog>
