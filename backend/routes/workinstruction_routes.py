@@ -398,7 +398,12 @@ def get_work_instruction_file(
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
         media_type = "application/msword"
-    return FileResponse(path, media_type=media_type, filename=path.name)
+    return FileResponse(
+        path,
+        media_type=media_type,
+        filename=path.name,
+        headers={"Content-Disposition": "inline"},
+    )
 
 
 @router.get("/languages")

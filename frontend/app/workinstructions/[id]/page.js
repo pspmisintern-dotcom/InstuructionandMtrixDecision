@@ -26,6 +26,7 @@ import {
   Language as LanguageIcon,
 } from "@mui/icons-material";
 import Layout from "../../../components/Layout";
+import PdfViewer from "../../../components/PdfViewer";
 import { workInstructionApi } from "../../../lib/api";
 import { useLanguage, LANGUAGES } from "../../../context/LanguageContext";
 import { useAuth } from "../../../context/AuthContext";
@@ -45,7 +46,7 @@ export default function WorkInstructionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [error, setError] = useState("");
-  const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null);
 
   useEffect(() => {
     const fetchWi = async () => {
@@ -68,11 +69,7 @@ export default function WorkInstructionDetailPage() {
     try {
       const res = await workInstructionApi.pdf(wi.id, language);
       const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      setPdfUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return url;
-      });
+      setPdfBlob(blob);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to convert document to PDF. Ensure the source file exists in the data folder.");
     } finally {
@@ -85,12 +82,6 @@ export default function WorkInstructionDetailPage() {
       loadPdf();
     }
   }, [wi, language, loadPdf]);
-
-  useEffect(() => {
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    };
-  }, [pdfUrl]);
 
   if (loading) {
     return (
@@ -222,19 +213,6 @@ export default function WorkInstructionDetailPage() {
               ? `Converting document to ${languageLabel} PDF...`
               : `Viewing: ${cleanTitle(wi.title)} (${languageLabel})`}
           </Typography>
-          {pdfUrl && (
-            <Button
-              component="a"
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              size="small"
-              variant="outlined"
-              sx={{ textTransform: "none", fontWeight: 600, flexShrink: 0 }}
-            >
-              Open PDF
-            </Button>
-          )}
         </Box>
 
         {pdfLoading ? (
@@ -244,18 +222,8 @@ export default function WorkInstructionDetailPage() {
               Translating and converting DOCX to PDF. This may take a moment...
             </Typography>
           </Box>
-        ) : pdfUrl ? (
-          <Box
-            component="iframe"
-            src={pdfUrl}
-            title={`${wi.wi_number} PDF`}
-            sx={{
-              width: "100%",
-              height: "75vh",
-              border: "none",
-              display: "block",
-            }}
-          />
+        ) : pdfBlob ? (
+          <PdfViewer file={pdfBlob} height="75vh" />
         ) : (
           <Box sx={{ display: "flex", justifyContent: "center", py: 12 }}>
             <Typography color="text.secondary">No PDF available.</Typography>
