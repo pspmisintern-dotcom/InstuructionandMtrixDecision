@@ -24,6 +24,7 @@ LANGUAGE_FOLDERS = {
     "en": DATA_ROOT / "English Data",
     "hi": DATA_ROOT / "HIndi data",
     "mr": DATA_ROOT / "Marathi Data",
+    "or": DATA_ROOT / "Odia Data",
 }
 
 FALLBACK_DATA_DIRS = [
@@ -47,7 +48,8 @@ def extract_title_from_pdf(filename: str, lang: str) -> str:
     name = re.sub(r"\.pdf$", "", filename, flags=re.IGNORECASE)
     name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"_Marathi$", "", name, flags=re.IGNORECASE)
-    name = re.sub(r"\.en\.(hi|mr)$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"_Odia$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"\.en\.(hi|mr|or)$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*to[_\s]+", "To ", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
@@ -94,7 +96,7 @@ def scan_and_populate_pdfs(db: Session):
             # to avoid duplicates (e.g. Hindi folder has both "WI_06 Plasma Spray.pdf"
             # and "WI_01_for_Inward_Hindi.pdf" - the non-suffixed ones are English duplicates)
             if lang != "en":
-                lang_suffix = {"hi": "hindi", "mr": "marathi"}.get(lang, lang).lower()
+                lang_suffix = {"hi": "hindi", "mr": "marathi", "or": "odia"}.get(lang, lang).lower()
                 file_lower = pdf_file.name.lower()
                 # Only include if filename contains the language suffix (case-insensitive),
                 # e.g. "..._Marathi.pdf", or the short-code suffix used by some translated
@@ -111,7 +113,7 @@ def scan_and_populate_pdfs(db: Session):
             title = extract_title_from_pdf(pdf_file.name, lang)
             department = determine_department_from_filename(pdf_file.name)
 
-            lang_label = {"en": "English", "hi": "Hindi", "mr": "Marathi"}.get(lang, lang)
+            lang_label = {"en": "English", "hi": "Hindi", "mr": "Marathi", "or": "Odia"}.get(lang, lang)
             # Extract the actual document text so the AI Assistant has real
             # content to search/answer from, instead of just this generic
             # placeholder sentence.
@@ -143,30 +145,59 @@ def scan_and_populate_pdfs(db: Session):
 
 
 def resolve_pdf_path(file_path: str, lang: str = "en") -> Optional[Path]:
-    """Resolve a PDF path from a file_path stored in DB like 'pdf:en:WI_06 Plasma Spray.pdf'."""
-    if file_path and file_path.startswith("pdf:"):
-        parts = file_path.split(":", 2)
-        if len(parts) == 3:
-            stored_lang = parts[1]
-            filename = parts[2]
-            target_lang = lang if lang in LANGUAGE_FOLDERS else stored_lang
-            if target_lang in LANGUAGE_FOLDERS:
-                folder = LANGUAGE_FOLDERS[target_lang]
-                candidate = folder / filename
-                if candidate.exists():
-                    return candidate
-                # For non-English languages, also try with the language suffix
-                if target_lang != "en":
-                    lang_suffix = {"hi": "Hindi", "mr": "Marathi"}.get(target_lang, target_lang)
-                    base_name = Path(filename).stem
-                    suffixed = folder / f"{base_name}_{lang_suffix}.pdf"
-                    if suffixed.exists():
-                        return suffixed
-            if stored_lang in LANGUAGE_FOLDERS:
-                folder = LANGUAGE_FOLDERS[stored_lang]
-                candidate = folder / filename
-                if candidate.exists():
-                    return candidate
+    """Resolve a PDF path from a file_path stored in DB like 'pdf:en:WI_06 Plasma Spray.pdf'.
+
+    The multilingual PDFs are named by Work Instruction number plus a language suffix,
+    not by an exact duplicate of the English filename. Match by WI number and the
+    requested language instead of trying the exact stored filename in the target folder.
+    """
+    if not file_path or not file_path.startswith("pdf:"):
+        return None
+
+    parts = file_path.split(":", 2)
+    if len(parts) != 3:
+        return None
+
+    stored_lang = parts[1]
+    filename = parts[2]
+    target_lang = lang if lang in LANGUAGE_FOLDERS else stored_lang
+    wi_number = extract_wi_number_from_pdf(filename)
+
+    def _match_candidates(folder: Path) -> List[Path]:
+        if not folder.exists():
+            return []
+        matches = []
+        for candidate in sorted(folder.glob("*.pdf")):
+            candidate_number = extract_wi_number_from_pdf(candidate.name)
+            if candidate_number != wi_number:
+                continue
+            name_lower = candidate.name.lower()
+            if target_lang == "en":
+                if any(marker in name_lower for marker in ["_hindi", "_marathi", "_odia", ".hi.", ".mr.", ".or."]):
+                    continue
+                matches.append(candidate)
+                continue
+            lang_markers = {
+                "hi": ["hindi", ".hi.", "_hindi"],
+                "mr": ["marathi", ".mr.", "_marathi"],
+                "or": ["odia", ".or.", "_odia"],
+            }.get(target_lang, [target_lang])
+            if any(marker in name_lower for marker in lang_markers):
+                matches.append(candidate)
+        return matches
+
+    if target_lang in LANGUAGE_FOLDERS:
+        matches = _match_candidates(LANGUAGE_FOLDERS[target_lang])
+        if matches:
+            return matches[0]
+
+    # Final fallback: keep the original stored-language file as-is if no translated
+    # match exists for the chosen language.
+    if stored_lang in LANGUAGE_FOLDERS:
+        stored_candidate = LANGUAGE_FOLDERS[stored_lang] / filename
+        if stored_candidate.exists():
+            return stored_candidate
+
     return None
 
 
@@ -186,7 +217,8 @@ def clean_wi_title(wi: WorkInstruction) -> str:
     name = re.sub(r"\.pdf$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"_Hindi$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"_Marathi$", "", name, flags=re.IGNORECASE)
-    name = re.sub(r"\.en\.(hi|mr)$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"_Odia$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"\.en\.(hi|mr|or)$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*for[_\s]+", "", name, flags=re.IGNORECASE)
     name = re.sub(r"^WI[_\- ]?\d+[_\s\-]*", "", name, flags=re.IGNORECASE)
     name = name.replace("_", " ").replace("(", "").replace(")", "")

@@ -78,7 +78,8 @@ function WorkInstructionsContent() {
 
   const getLanguageLabel = (lang) => {
     const found = LANGUAGES.find((l) => l.code === lang);
-    return found ? found.label : lang === "en" ? "English" : lang === "hi" ? "Hindi" : "Marathi";
+    if (found) return found.label;
+    return { en: "English", hi: "Hindi", mr: "Marathi", or: "Odia" }[lang] || lang;
   };
 
   const filtered = wis.filter((wi) => {

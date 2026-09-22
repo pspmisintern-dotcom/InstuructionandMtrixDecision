@@ -42,6 +42,7 @@ export default function WorkInstructionDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { language, setLanguage, languageLabel } = useLanguage();
+  const canUseAiAssistant = user && user.role !== "admin" && (user.role === "supervisor" || user.role === "operator" || user.ai_assistant_enabled);
   const [wi, setWi] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -111,7 +112,7 @@ export default function WorkInstructionDetailPage() {
         >
           Back to Work Instructions
         </Button>
-        {user?.role === "admin" || user?.ai_assistant_enabled ? (
+        {canUseAiAssistant ? (
           <Button
             variant="outlined"
             color="info"

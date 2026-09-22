@@ -6,6 +6,7 @@ export const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "hi", label: "Hindi (हिंदी)" },
   { code: "mr", label: "Marathi (मराठी)" },
+  { code: "or", label: "Odia (ଓଡ଼ିଆ)" },
 ];
 
 const LanguageContext = createContext({

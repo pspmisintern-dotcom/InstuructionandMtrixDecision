@@ -54,7 +54,7 @@ import Logo from "./Logo";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: <DashboardIcon />, roles: ["admin", "supervisor", "operator"] },
   { label: "Work Instructions", href: "/workinstructions", icon: <DescriptionIcon />, roles: ["admin", "supervisor", "operator"] },
-  { label: "AI Assistant", href: "/ai", icon: <AIIcon />, roles: ["admin", "supervisor", "operator"], requiresAiAccess: true },
+  { label: "AI Assistant", href: "/ai", icon: <AIIcon />, roles: ["supervisor", "operator"], requiresAiAccess: true },
   { label: "Users", href: "/users", icon: <UsersIcon />, roles: ["admin"] },
   { label: "Audit Logs", href: "/audit", icon: <AuditIcon />, roles: ["admin", "supervisor"] },
 ];

@@ -30,8 +30,10 @@ import {
   ExpandMore,
   ExpandLess,
 } from "@mui/icons-material";
+import { useRouter } from "next/navigation";
 import Layout from "../../components/Layout";
 import { aiApi } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 
 const suggestedQuestions = [
   "What PPE is required for Blasting? List each item with purpose.",
@@ -278,6 +280,15 @@ function UserBubbleMessage({ content }) {
 }
 
 export default function AIPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
+
   const [messages, setMessages] = useState([
     {
       role: "assistant",
