@@ -159,14 +159,52 @@ def create_user(
 
     email = new_user.email or f"{new_user.username}@users.local"
 
-    exists = db.query(User).filter(
+    existing = db.query(User).filter(
         (User.username == new_user.username) | (User.email == email)
     ).first()
-    if exists:
+    if existing is not None and (existing.is_active is not False or existing.role == "admin"):
         raise HTTPException(status_code=400, detail="Username or email already exists")
 
     # Auto-generate a secure random password (system-created, not admin-typed)
     generated_password = generate_random_password()
+
+    if existing is not None:
+        # The username is still held by a deactivated account, which used to be
+        # a dead end: the admin could not re-add the person ("Username or email
+        # already exists") and the account could not log in either. Reuse that
+        # row and reactivate it with a brand-new one-time password instead.
+        existing.full_name = new_user.full_name
+        existing.email = email
+        existing.role = new_user.role
+        existing.department = new_user.department
+        existing.hashed_password = hash_password(generated_password)
+        existing.is_active = True
+        existing.access_granted = False
+        existing.access_granted_at = None
+        existing.access_expires_at = None
+        existing.must_change_password = True
+        existing.access_request_status = "approved"
+        db.add(AuditLog(
+            user_id=current_user.id,
+            action="REACTIVATE_USER",
+            detail=(
+                f"Re-added {new_user.role} '{new_user.username}' — the existing "
+                "deactivated account was reactivated with a new password."
+            ),
+        ))
+        db.commit()
+        db.refresh(existing)
+        return {
+            "id": existing.id,
+            "message": (
+                f"'{new_user.username}' already existed as a deactivated account. "
+                "It has been reactivated with a new password."
+            ),
+            "username": existing.username,
+            "generated_password": generated_password,
+            "must_change_password": True,
+            "reactivated": True,
+        }
 
     user = User(
         username=new_user.username,
@@ -254,6 +292,82 @@ def update_user(
     db.add(AuditLog(user_id=current_user.id, action="UPDATE_USER", detail=detail))
     db.commit()
     return {"message": "User updated"}
+
+
+@router.post("/{user_id}/activate")
+def activate_user(
+    user_id: int,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    """Reactivate a deactivated account so it can log in again.
+
+    Needed because login refuses any user with is_active = False. Accounts
+    deactivated by the older "delete" behaviour could otherwise never be
+    restored: their username is still taken, so they couldn't be re-created,
+    and they couldn't log in either.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.username.lower() == ADMIN_FIXED_USERNAME.lower():
+        raise HTTPException(status_code=403, detail="The fixed admin account is always active.")
+
+    already_active = user.is_active is True
+    user.is_active = True
+    if not already_active:
+        db.add(AuditLog(
+            user_id=current_user.id,
+            action="ACTIVATE_USER",
+            detail=f"Admin '{current_user.username}' reactivated '{user.username}'.",
+        ))
+    db.commit()
+    return {
+        "message": (
+            f"'{user.username}' is already active."
+            if already_active
+            else f"'{user.username}' has been reactivated and can log in again."
+        ),
+        "user": _user_dict(user),
+    }
+
+
+@router.post("/{user_id}/deactivate")
+def deactivate_user(
+    user_id: int,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    """Temporarily disable login for a user without deleting the account.
+
+    Keeps all records intact (unlike DELETE), so it is reversible via
+    /activate. Useful for suspending someone while keeping their history.
+    """
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot deactivate your own account")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.username.lower() == ADMIN_FIXED_USERNAME.lower():
+        raise HTTPException(status_code=403, detail="Cannot deactivate the fixed admin account.")
+
+    user.is_active = False
+    # Also drop the access window so a later reactivation doesn't silently
+    # restore a stale session/expiry the admin never intended to keep.
+    user.access_granted = False
+    user.access_granted_at = None
+    user.access_expires_at = None
+
+    db.add(AuditLog(
+        user_id=current_user.id,
+        action="DEACTIVATE_USER",
+        detail=f"Admin '{current_user.username}' deactivated '{user.username}'.",
+    ))
+    db.commit()
+    return {
+        "message": f"'{user.username}' has been deactivated and can no longer log in.",
+        "user": _user_dict(user),
+    }
 
 
 @router.delete("/{user_id}")

@@ -275,7 +275,7 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
         stored_hash = getattr(admin, "hashed_password", None) or ""
         if not stored_hash.startswith("$2"):
             admin.hashed_password = hash_password(ADMIN_FIXED_PASSWORD)
-        if not admin.is_active:
+        if admin.is_active is False:
             raise HTTPException(status_code=403, detail="Admin account is deactivated. Contact the administrator.")
         client_ip = get_client_ip_from_request(request)
 
@@ -334,8 +334,14 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
         )
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="Account is deactivated. Contact the administrator.")
+    if user.is_active is False:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Your account is deactivated, so login is blocked. "
+                "Please ask the administrator to reactivate it from the Users page."
+            ),
+        )
 
     # Get client IP for logging and geofencing
     client_ip = get_client_ip_from_request(request)
@@ -550,13 +556,21 @@ def grant_access(
     user.must_change_password = True           # force password change on first login
     user.access_request_status = "approved"    # mark request resolved
 
+    # Granting access must also (re)activate the account: login rejects any
+    # user whose is_active is False ("Account is deactivated"), so without
+    # this a previously deactivated/deleted account stayed locked out even
+    # though the admin had just handed out a fresh one-time password.
+    was_inactive = not user.is_active
+    user.is_active = True
+
     db.add(AuditLog(
         user_id=current_user.id,
         action="GRANT_ACCESS",
         detail=(
             f"Admin '{current_user.username}' granted access to '{user.username}' "
             f"for {req.duration_hours} hours with a new one-time password"
-            f"{f' (department set to {user.department})' if req.department else ''}."
+            f"{f' (department set to {user.department})' if req.department else ''}"
+            f"{' (account reactivated)' if was_inactive else ''}."
         ),
     ))
     db.commit()
@@ -833,6 +847,9 @@ def toggle_access(
         user.access_expires_at = datetime.utcnow() + timedelta(hours=req.duration_hours)
         user.must_change_password = True
         user.access_request_status = "approved"
+        # Same reason as grant_access: an inactive account can never log in,
+        # so toggling access on must reactivate it too.
+        user.is_active = True
 
         db.add(AuditLog(
             user_id=current_user.id,

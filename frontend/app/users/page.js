@@ -24,7 +24,7 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { Add, Delete, LockOpen, Lock, ContentCopy, Edit } from "@mui/icons-material";
+import { Add, Delete, LockOpen, Lock, ContentCopy, Edit, PersonAdd } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
 import { parseServerDate } from "../../lib/dateUtils";
@@ -41,7 +41,9 @@ const STATUS_META = {
   not_granted: { label: "No Access", color: "default" },
   pending: { label: "Pending Approval", color: "warning" },
   rejected: { label: "Rejected", color: "error" },
-  inactive: { label: "Inactive", color: "default" },
+  // Matches the backend login error ("Your account is deactivated"), so the
+  // reason an inactive account cannot log in is obvious from the list.
+  inactive: { label: "Deactivated", color: "error" },
 };
 
 function getStatusMeta(user) {
@@ -174,6 +176,34 @@ export default function UsersPage() {
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to revoke access");
+    }
+  };
+
+  // An inactive account cannot log in at all ("Account is deactivated"), so
+  // it must be reactivated before Grant Access is useful.
+  const handleActivate = async (id) => {
+    setError("");
+    setSuccess("");
+    try {
+      const res = await userApi.activate(id);
+      setSuccess(res.data?.message || "User reactivated.");
+      await loadUsers();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to reactivate user");
+    }
+  };
+
+  const handleDeactivate = async (id) => {
+    setError("");
+    setSuccess("");
+    try {
+      const res = await userApi.deactivate(id);
+      setSuccess(res.data?.message || "User deactivated.");
+      setDeleteUser(null);
+      await loadUsers();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to deactivate user");
+      setDeleteUser(null);
     }
   };
 
@@ -347,7 +377,17 @@ export default function UsersPage() {
                           </Tooltip>
                           {u.role !== "admin" && (
                             <>
-                              {u.status === "expired" || u.access_expired || !u.access_granted ? (
+                              {u.status === "inactive" ? (
+                                <Tooltip title="Reactivate account (restores login)">
+                                  <IconButton
+                                    size="small"
+                                    color="success"
+                                    onClick={() => handleActivate(u.id)}
+                                  >
+                                    <PersonAdd />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : u.status === "expired" || u.access_expired || !u.access_granted ? (
                                 <Tooltip title="Grant Access">
                                   <IconButton
                                     size="small"
@@ -570,22 +610,31 @@ export default function UsersPage() {
             from the system and will no longer be able to log in. This cannot be undone.
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-            Their audit history is kept, but their checklist progress and personal
-            notifications are removed.
+            To only block login temporarily (keeping the account and its history),
+            use <strong>Deactivate</strong> instead — you can reactivate it later.
           </Typography>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: "space-between" }}>
           <Button onClick={() => setDeleteUser(null)} disabled={deleting}>
             Cancel
           </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => handleDelete(deleteUser?.id)}
-            disabled={deleting || !deleteUser}
-          >
-            {deleting ? <CircularProgress size={20} color="inherit" /> : "Delete User"}
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              color="warning"
+              onClick={() => handleDeactivate(deleteUser?.id)}
+              disabled={deleting || !deleteUser}
+            >
+              Deactivate
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => handleDelete(deleteUser?.id)}
+              disabled={deleting || !deleteUser}
+            >
+              {deleting ? <CircularProgress size={20} color="inherit" /> : "Delete User"}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Layout>

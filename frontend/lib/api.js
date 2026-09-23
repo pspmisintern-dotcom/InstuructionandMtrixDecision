@@ -89,6 +89,8 @@ export const userApi = {
     delete payload.password;
     return api.put(`/users/${id}`, payload);
   },
+  activate: (id) => api.post(`/users/${id}/activate`),
+  deactivate: (id) => api.post(`/users/${id}/deactivate`),
   delete: (id) => api.delete(`/users/${id}`),
 };
 
