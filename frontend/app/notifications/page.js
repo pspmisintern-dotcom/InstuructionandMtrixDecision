@@ -77,6 +77,8 @@ export default function NotificationsPage() {
     try {
       const res = await notificationApi.list();
       setNotifs(res.data);
+      // Badge in Layout polls /unread-count; keep its 10s server cache in
+      // sync without an extra round-trip (list() already refreshes it).
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load notifications");
     } finally {

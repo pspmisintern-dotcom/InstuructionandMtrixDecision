@@ -1,6 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, Text, DateTime, ForeignKey, JSON
+    Column, Integer, String, Float, Boolean, Text, DateTime, ForeignKey, JSON,
+    Index,
 )
 from sqlalchemy.orm import relationship
 from backend.database import Base
@@ -57,7 +58,7 @@ class WorkInstruction(Base):
     wi_number = Column(String(50), index=True, nullable=False)
     title = Column(String(300), nullable=False)
     revision = Column(String(20), default="Rev 1")
-    department = Column(String(100), nullable=True)
+    department = Column(String(100), nullable=True, index=True)
     activity = Column(String(200), nullable=True)
     scope = Column(Text, nullable=True)
     applicability = Column(Text, nullable=True)  # applicable machines
@@ -79,10 +80,14 @@ class WorkInstruction(Base):
     qa_approval_required = Column(Boolean, default=False)
     revision_history = Column(Text, nullable=True)
     file_path = Column(String(500), nullable=True, unique=True)
-    is_archived = Column(Boolean, default=False)
-    is_latest = Column(Boolean, default=True)
+    is_archived = Column(Boolean, default=False, index=True)
+    is_latest = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_wi_archived_dept", is_archived, department),
+    )
 
     sections = relationship("Section", back_populates="work_instruction", cascade="all, delete-orphan")
     checklists = relationship("Checklist", back_populates="work_instruction")
@@ -124,9 +129,14 @@ class AuditLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     work_instruction_id = Column(Integer, ForeignKey("work_instructions.id"), nullable=True)
-    action = Column(String(200), nullable=False)
+    action = Column(String(200), nullable=False, index=True)
     detail = Column(Text, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        Index("ix_audit_logs_timestamp_desc", timestamp.desc()),
+        Index("ix_audit_logs_action_timestamp", action, timestamp.desc()),
+    )
 
     user = relationship("User", back_populates="audit_logs")
     work_instruction = relationship("WorkInstruction", back_populates="audit_logs")
@@ -177,13 +187,17 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     title = Column(String(300), nullable=False)
     message = Column(Text, nullable=False)
     severity = Column(String(20), default="info")  # info | warning | danger
-    is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    is_read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        Index("ix_notifications_user_read_created", user_id, is_read, created_at.desc()),
+    )
 
     user = relationship("User", back_populates="notifications", foreign_keys=[user_id])
     sender = relationship("User", foreign_keys=[sender_id])

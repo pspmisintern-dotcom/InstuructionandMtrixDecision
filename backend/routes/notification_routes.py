@@ -17,6 +17,53 @@ class SendNotificationRequest(BaseModel):
     severity: str = "info"
 
 
+# ---------------------------------------------------------------------------
+# Lightweight unread-count endpoint — used by the app Layout's polling badge.
+# The full list endpoint returns up to 50 full rows every 30s on every open
+# tab; this returns a single integer so background polling stays cheap.
+# ---------------------------------------------------------------------------
+_UNREAD_COUNT_CACHE: dict = {}
+_UNREAD_COUNT_TTL_SECONDS = 10.0
+
+
+def _get_cached_unread_count(user_id: int):
+    import time
+
+    entry = _UNREAD_COUNT_CACHE.get(user_id)
+    if entry and (time.monotonic() - entry[1]) < _UNREAD_COUNT_TTL_SECONDS:
+        return entry[0]
+    return None
+
+
+def _set_cached_unread_count(user_id: int, count: int):
+    import time
+
+    # Bound the cache size so it can't grow without limit.
+    if len(_UNREAD_COUNT_CACHE) > 2000:
+        _UNREAD_COUNT_CACHE.clear()
+    _UNREAD_COUNT_CACHE[user_id] = (count, time.monotonic())
+
+
+@router.get("/unread-count")
+def unread_count(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    cached = _get_cached_unread_count(current_user.id)
+    if cached is not None:
+        return {"unread": cached}
+    from sqlalchemy import func
+
+    count = (
+        db.query(func.count(Notification.id))
+        .filter(
+            ((Notification.user_id == current_user.id) | (Notification.user_id.is_(None))),
+            Notification.is_read == False,  # noqa: E712
+        )
+        .scalar()
+        or 0
+    )
+    _set_cached_unread_count(current_user.id, count)
+    return {"unread": count}
+
+
 @router.get("")
 def list_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     notifs = (
@@ -26,6 +73,14 @@ def list_notifications(current_user: User = Depends(get_current_user), db: Sessi
         .limit(50)
         .all()
     )
+    # Any read of the list refreshes the unread-count cache so the badge
+    # stays consistent without an extra query.
+    try:
+        _set_cached_unread_count(
+            current_user.id, sum(1 for n in notifs if not n.is_read)
+        )
+    except Exception:
+        pass
     return [
         {
             "id": n.id,

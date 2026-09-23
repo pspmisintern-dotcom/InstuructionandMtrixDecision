@@ -24,7 +24,7 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { Add, Delete, LockOpen, Lock, ContentCopy, SmartToy, Edit } from "@mui/icons-material";
+import { Add, Delete, LockOpen, Lock, ContentCopy, Edit } from "@mui/icons-material";
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
 import { parseServerDate } from "../../lib/dateUtils";
@@ -38,7 +38,7 @@ export default function UsersPage() {
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [editForm, setEditForm] = useState({ department: "" });
+  const [editForm, setEditForm] = useState({ username: "", department: "" });
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantUser, setGrantUser] = useState(null);
   const [grantResult, setGrantResult] = useState(null);
@@ -57,7 +57,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       const res = await userApi.list();
-      setUsers(res.data);
+      setUsers((res.data || []).filter((user) => user.role !== "admin"));
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load users");
     } finally {
@@ -100,7 +100,10 @@ export default function UsersPage() {
   const handleUpdateDepartment = async () => {
     setError("");
     try {
-      await userApi.update(editUser.id, { department: editForm.department || null });
+      await userApi.update(editUser.id, {
+        username: editForm.username.trim(),
+        department: editForm.department || null,
+      });
       setEditOpen(false);
       await loadUsers();
     } catch (err) {
@@ -133,26 +136,6 @@ export default function UsersPage() {
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to revoke access");
-    }
-  };
-
-  const handleGrantAIAssistant = async (userId) => {
-    setError("");
-    try {
-      await authApi.grantAIAssistant(userId);
-      await loadUsers();
-    } catch (err) {
-      setError(err.response?.data?.detail || "Failed to grant AI Assistant access");
-    }
-  };
-
-  const handleRevokeAIAssistant = async (userId) => {
-    setError("");
-    try {
-      await authApi.revokeAIAssistant(userId);
-      await loadUsers();
-    } catch (err) {
-      setError(err.response?.data?.detail || "Failed to revoke AI Assistant access");
     }
   };
 
@@ -254,7 +237,6 @@ export default function UsersPage() {
                 <TableCell>Status</TableCell>
                 <TableCell>Access</TableCell>
                 <TableCell>Access Expires</TableCell>
-                <TableCell>AI Assistant</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -285,45 +267,14 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell>{u.role === "admin" ? "-" : formatDate(u.access_expires_at)}</TableCell>
                   <TableCell>
-                    {u.role === "admin" ? (
-                      <Chip label="Always" color="primary" size="small" />
-                    ) : u.ai_assistant_enabled ? (
-                      <Chip label="Granted" color="success" size="small" />
-                    ) : (
-                      <Chip label="Not Granted" color="default" size="small" />
-                    )}
-                  </TableCell>
-                  <TableCell>
                     <Box sx={{ display: "flex", gap: 0.5 }}>
-                      {u.role !== "admin" && !u.ai_assistant_enabled && (
-                        <Tooltip title="Grant AI Assistant">
-                          <IconButton
-                            size="small"
-                            color="secondary"
-                            onClick={() => handleGrantAIAssistant(u.id)}
-                          >
-                            <SmartToy />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {u.role !== "admin" && u.ai_assistant_enabled && (
-                        <Tooltip title="Revoke AI Assistant">
-                          <IconButton
-                            size="small"
-                            color="secondary"
-                            onClick={() => handleRevokeAIAssistant(u.id)}
-                          >
-                            <SmartToy htmlColor="#ef4444" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      <Tooltip title="Edit Department">
+                      <Tooltip title="Edit User">
                         <IconButton
                           size="small"
                           color="primary"
                           onClick={() => {
                             setEditUser(u);
-                            setEditForm({ department: u.department || "" });
+                            setEditForm({ username: u.username || "", department: u.department || "" });
                             setEditOpen(true);
                           }}
                         >
@@ -447,9 +398,18 @@ export default function UsersPage() {
         <DialogTitle>Edit Department for {editUser?.full_name || ""}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Changes which Work Instructions {editUser?.username} can see. Takes effect
-            immediately, without resetting their password or login access.
+            Update the username and department. Changes take effect immediately without
+            resetting the user&apos;s password or login access.
           </Typography>
+          <TextField
+            label="Username"
+            fullWidth
+            required
+            inputProps={{ maxLength: 100 }}
+            value={editForm.username}
+            onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+            margin="normal"
+          />
           <TextField
             select
             label="Department"

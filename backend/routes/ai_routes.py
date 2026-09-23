@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import User, AuditLog
 from backend.auth import get_current_user
-from backend.ai_assistant import ask_question
-from backend.agent_graph import node_ai_assistant, WorkflowState, run_workflow
+
+# NOTE: ai_assistant / agent_graph pull in heavy ML deps (openai, torch via
+# sentence-transformers, langgraph). Import them lazily inside the handlers
+# so login/dashboard/users requests never pay that import cost on cold start.
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -44,6 +46,8 @@ def ask(req: AskRequest, current_user: User = Depends(require_ai_access), db: Se
     if not req.question.strip():
         return {"answer": "Please ask a question.", "sources": []}
 
+    from backend.ai_assistant import ask_question
+
     result = ask_question(req.question, req.context or {})
 
     # Log the AI question to audit trail
@@ -60,6 +64,8 @@ def ask(req: AskRequest, current_user: User = Depends(require_ai_access), db: Se
 @router.post("/workflow")
 def run_workflow(req: WorkflowRequest, current_user: User = Depends(require_ai_access), db: Session = Depends(get_db)):
     """Run the LangGraph workflow through the AI node (or full graph)."""
+    from backend.agent_graph import node_ai_assistant, WorkflowState, run_workflow as _run_workflow
+
     state: WorkflowState = {
         "operator_id": current_user.id,
         "operator_name": req.operator_name or current_user.full_name,
@@ -84,7 +90,7 @@ def run_workflow(req: WorkflowRequest, current_user: User = Depends(require_ai_a
         }
 
     # Run the full workflow graph and return the final state.
-    result = run_workflow(state)
+    result = _run_workflow(state)
     return {
         "state": result,
         "blocked": result.get("blocked", False),

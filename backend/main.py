@@ -45,15 +45,69 @@ CORS_ORIGINS = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("[main] Creating database tables...")
-    Base.metadata.create_all(bind=engine)
-    print("[main] Database tables ready.")
+    # NOTE: don't run Base.metadata.create_all() on every serverless cold
+    # start — on Postgres it issues dozens of round-trips (has_table checks
+    # per model + CREATE TABLE IF NOT EXISTS), which used to add seconds to
+    # the first request after idle (e.g. login). Tables are created by
+    # migrations/seed; only run the DDL for local SQLite dev, which is free.
+    if engine.url.get_backend_name() == "sqlite":
+        print("[main] Creating database tables (sqlite)...")
+        Base.metadata.create_all(bind=engine)
+        print("[main] Database tables ready.")
+    else:
+        print("[main] Skipping DDL on serverless Postgres (tables pre-created).")
+        _ensure_performance_indexes()
 
     print("[main] Skipping RAG knowledge-base loading during startup.")
 
     yield
 
     print("[main] Application shutting down.")
+
+
+def _ensure_performance_indexes():
+    """Create the small set of speed-critical indexes with CONCURRENTLY-free
+    CREATE INDEX IF NOT EXISTS (no-op when they already exist).
+
+    Needed because lifespan no longer runs create_all() on Postgres, so the
+    new Index() entries in models.py would otherwise never materialize in
+    production. Each statement is a single cheap catalog check when the
+    index exists — far cheaper than create_all()'s per-table round-trips.
+    Runs in a short-lived connection with a tight timeout so a slow DB
+    never blocks a cold start for long."""
+    statements = [
+        "CREATE INDEX IF NOT EXISTS ix_audit_logs_timestamp ON audit_logs (timestamp)",
+        "CREATE INDEX IF NOT EXISTS ix_audit_logs_timestamp_desc ON audit_logs (timestamp DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_audit_logs_action_timestamp ON audit_logs (action, timestamp DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_audit_logs_action ON audit_logs (action)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_read_created ON notifications (user_id, is_read, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_id ON notifications (user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_is_read ON notifications (is_read)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications (created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_wi_archived_dept ON work_instructions (is_archived, department)",
+        "CREATE INDEX IF NOT EXISTS ix_wi_is_archived ON work_instructions (is_archived)",
+        "CREATE INDEX IF NOT EXISTS ix_wi_department ON work_instructions (department)",
+        "CREATE INDEX IF NOT EXISTS ix_wi_is_latest ON work_instructions (is_latest)",
+    ]
+    db = SessionLocal()
+    try:
+        # Single transaction for all statements: when indexes already exist
+        # each is just a cheap catalog lookup, and one COMMIT keeps the
+        # cold-start cost to ~1 round-trip batch instead of 12.
+        try:
+            for stmt in statements:
+                db.execute(sql_text(stmt))
+            db.commit()
+        except Exception as e:
+            print(f"[main] performance-index check skipped: {e}")
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        else:
+            print("[main] Performance indexes ensured.")
+    finally:
+        db.close()
 
 app = FastAPI(
     title="Digital Work Instruction Management System",

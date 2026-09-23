@@ -10,10 +10,12 @@ from typing import Optional, List
 from backend.database import get_db
 from backend.models import User, WorkInstruction, Section, AuditLog
 from backend.auth import get_current_user
-from backend.qr import work_instruction_qr
-from backend.pdf_converter import docx_to_translated_pdf, SUPPORTED_LANGUAGES
 from backend.departments import DEPARTMENTS, determine_department_from_filename
-from backend.pdf_text_extract import extract_pdf_text
+
+# NOTE: qr (qrcode/Pillow), pdf_converter (python-docx/fpdf2/deep_translator)
+# and pdf_text_extract (pypdf) are heavy-ish imports only needed by specific
+# endpoints. Import them lazily inside the handlers so login / list requests
+# never pay that import cost on a cold start.
 
 router = APIRouter(prefix="/workinstructions", tags=["workinstructions"])
 
@@ -117,6 +119,8 @@ def scan_and_populate_pdfs(db: Session):
             # Extract the actual document text so the AI Assistant has real
             # content to search/answer from, instead of just this generic
             # placeholder sentence.
+            from backend.pdf_text_extract import extract_pdf_text  # lazy: pypdf
+
             body_text = extract_pdf_text(pdf_file)
             record = WorkInstruction(
                 wi_number=wi_number,
@@ -374,6 +378,8 @@ def get_work_instruction(
         {"heading": s.heading, "content": s.content, "order_index": s.order_index}
         for s in sections
     ]
+    from backend.qr import work_instruction_qr  # lazy: qrcode/Pillow
+
     data["qr_code"] = work_instruction_qr(wi.id)
     return data
 
@@ -445,6 +451,8 @@ def get_work_instruction_file(
 
 @router.get("/languages")
 def list_supported_languages(current_user: User = Depends(get_current_user)):
+    from backend.pdf_converter import SUPPORTED_LANGUAGES  # lazy
+
     return [{"code": code, "label": label} for code, label in SUPPORTED_LANGUAGES.items()]
 
 
@@ -480,6 +488,11 @@ def get_work_instruction_pdf(
     path = _resolve_document_path(wi, lang)
     if not path:
         raise HTTPException(status_code=404, detail="Source document file not found in data folder")
+
+    from backend.pdf_converter import (  # lazy: docx/fpdf2/translator
+        docx_to_translated_pdf,
+        SUPPORTED_LANGUAGES,
+    )
 
     if lang not in SUPPORTED_LANGUAGES:
         lang = "en"

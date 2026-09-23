@@ -160,7 +160,10 @@ export default function DashboardPage() {
     };
 
     fetchData();
-    const intervalId = setInterval(fetchData, 45000);
+    // Poll less often: the old 45s full-summary refresh on every open tab was
+    // a heavy ~10-query scan each time and slowed other requests. 2 minutes
+    // keeps numbers fresh enough; users can reload for instant refresh.
+    const intervalId = setInterval(fetchData, 120000);
     return () => {
       isMounted = false;
       clearInterval(intervalId);

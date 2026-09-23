@@ -16,8 +16,10 @@ Each step is logged to the audit trail.
 from typing import TypedDict, List, Dict, Any
 from datetime import datetime
 
+# NOTE: decision_engine is lightweight; ai_assistant pulls heavy deps so it is
+# imported lazily inside node_ai_assistant() — importing this module must stay
+# cheap because main.py imports every route module on cold start.
 from backend.decision_engine import decision_engine
-from backend.ai_assistant import ask_question
 
 
 class WorkflowState(TypedDict, total=False):
@@ -153,6 +155,8 @@ def node_ai_assistant(state: WorkflowState) -> WorkflowState:
     """Handle an AI question within the workflow."""
     question = state.get("ai_question", "")
     if question:
+        from backend.ai_assistant import ask_question  # lazy: heavy deps
+
         answer = ask_question(question, state.get("process_data", {}))
         state["ai_answer"] = answer
         return _log(state, "AI_QUESTION", f"Q: {question} | A: {answer.get('answer', '')[:200]}")

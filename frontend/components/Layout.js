@@ -76,8 +76,18 @@ export default function Layout({ children }) {
 
   const loadUnreadCount = async () => {
     try {
-      const res = await notificationApi.list();
-      const unread = (res.data || []).filter((n) => !n.is_read).length;
+      // Lightweight integer endpoint (cached server-side for 10s) — the old
+      // code fetched the full 50-row list every 30s on every open tab, which
+      // loaded the DB and slowed every other request including login-time
+      // navigation.
+      const res = await notificationApi.unreadCount();
+      if (typeof res.data?.unread === "number") {
+        setUnreadCount(res.data.unread);
+        return;
+      }
+      // Fallback for older backends without /unread-count:
+      const listRes = await notificationApi.list();
+      const unread = (listRes.data || []).filter((n) => !n.is_read).length;
       setUnreadCount(unread);
     } catch {
       setUnreadCount(0);
@@ -86,7 +96,7 @@ export default function Layout({ children }) {
 
   useEffect(() => {
     loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000);
+    const interval = setInterval(loadUnreadCount, 60000);
     return () => clearInterval(interval);
   }, []);
 

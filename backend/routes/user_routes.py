@@ -36,6 +36,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = None
     full_name: Optional[str] = None
     email: Optional[str] = None
     role: Optional[str] = None
@@ -70,7 +71,7 @@ def list_users(
     current_user: User = Depends(require_role("admin", "supervisor")),
     db: Session = Depends(get_db),
 ):
-    users = db.query(User).all()
+    users = db.query(User).filter(User.role != "admin").all()
     return [_user_dict(u) for u in users]
 
 
@@ -173,6 +174,23 @@ def update_user(
                     detail=f"Cannot modify '{field_name}' on the fixed admin account.",
                 )
 
+    old_username = user.username
+    if updates.username is not None:
+        username = updates.username.strip()
+        if not username:
+            raise HTTPException(status_code=400, detail="Username cannot be empty")
+        if len(username) > 100:
+            raise HTTPException(status_code=400, detail="Username must be 100 characters or fewer")
+        if username.lower() == ADMIN_FIXED_USERNAME.lower():
+            raise HTTPException(status_code=400, detail="The username 'admin' is reserved")
+        duplicate = db.query(User).filter(
+            User.username == username,
+            User.id != user.id,
+        ).first()
+        if duplicate:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        user.username = username
+
     if updates.full_name is not None:
         user.full_name = updates.full_name
     if updates.email is not None:
@@ -188,7 +206,10 @@ def update_user(
             raise HTTPException(status_code=403, detail="Cannot deactivate the fixed admin account.")
         user.is_active = updates.is_active
 
-    db.add(AuditLog(user_id=current_user.id, action="UPDATE_USER", detail=f"Updated user {user.username}"))
+    detail = f"Updated user {old_username}"
+    if old_username != user.username:
+        detail += f"; username changed to {user.username}"
+    db.add(AuditLog(user_id=current_user.id, action="UPDATE_USER", detail=detail))
     db.commit()
     return {"message": "User updated"}
 

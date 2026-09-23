@@ -104,6 +104,7 @@ export const auditApi = {
 
 export const notificationApi = {
   list: () => api.get("/notifications"),
+  unreadCount: () => api.get("/notifications/unread-count"),
   sent: () => api.get("/notifications/sent"),
   send: (data) => api.post("/notifications/send", data),
   markRead: (id) => api.post(`/notifications/${id}/read`),

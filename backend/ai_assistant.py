@@ -19,7 +19,9 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
-import openai
+# NOTE: `openai` is a heavy import (httpx + pydantic graphs) that used to load
+# on EVERY cold start — including login requests that never touch AI. It is
+# now imported lazily inside _build_openai_answer() only.
 
 dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
@@ -255,6 +257,7 @@ def _build_openai_answer(question: str, results: List[dict], context: Dict) -> D
         return _build_offline_answer(question, results, context)
 
     try:
+        import openai  # lazy: heavy import, only needed for OpenAI answers
         openai.api_key = OPENAI_API_KEY
         prompt = SYSTEM_PROMPT.format(
             not_available=NOT_AVAILABLE_MSG,

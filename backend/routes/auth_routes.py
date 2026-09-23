@@ -267,7 +267,13 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
             db.flush()
         # Keep the stored hash in sync with the fixed password constant so
         # the DB row never has a stale hash from a previous password value.
-        if not verify_password(ADMIN_FIXED_PASSWORD, admin.hashed_password):
+        # NOTE: admin login compares against the plaintext constant above, so
+        # the DB hash is never verified here — skip the ~300-500ms bcrypt
+        # verify on every login. Only (re-)hash if the row has no usable
+        # bcrypt hash at all (missing/legacy value); the row was already
+        # hashed when newly created above.
+        stored_hash = getattr(admin, "hashed_password", None) or ""
+        if not stored_hash.startswith("$2"):
             admin.hashed_password = hash_password(ADMIN_FIXED_PASSWORD)
         if not admin.is_active:
             raise HTTPException(status_code=403, detail="Admin account is deactivated. Contact the administrator.")
