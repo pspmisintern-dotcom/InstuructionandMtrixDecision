@@ -1,11 +1,15 @@
 import secrets
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from backend.database import get_db
-from backend.models import User, AuditLog
+from backend.models import (
+    User, AuditLog, Checklist, Approval, Report, Notification,
+)
 from backend.auth import get_current_user, require_role
 from backend.security import hash_password
 from backend.departments import DEPARTMENTS
@@ -44,7 +48,41 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+def _access_state(u: User) -> str:
+    """Derive a single, accurate status for a user from every flag that
+    actually gates login (see auth_routes.login), instead of exposing the raw
+    `is_active` flag on its own.
+
+    Previously the UI showed "Active" for any user whose `is_active` was True,
+    even when their access window had already expired or was never granted —
+    so an account that could NOT log in still looked Active. That mismatch is
+    what made the Status column look wrong.
+    """
+    if not u.is_active:
+        return "inactive"
+
+    request_status = (u.access_request_status or "").lower()
+    if request_status == "pending":
+        return "pending"
+    if request_status == "rejected":
+        return "rejected"
+
+    if not u.access_granted:
+        return "not_granted"
+
+    # Expired access windows are auto-revoked by the backend on the next login
+    # attempt; report them as expired here so the list is accurate immediately.
+    if u.access_expires_at and u.access_expires_at < datetime.utcnow():
+        return "expired"
+
+    if u.must_change_password:
+        return "password_change_required"
+
+    return "active"
+
+
 def _user_dict(u: User) -> dict:
+    status = _access_state(u)
     return {
         "id": u.id,
         "username": u.username,
@@ -63,6 +101,10 @@ def _user_dict(u: User) -> dict:
         "ai_assistant_enabled": u.ai_assistant_enabled,
         "last_access_ip": u.last_access_ip,
         "created_at": u.created_at,
+        # Derived, login-accurate status fields for the UI.
+        "status": status,
+        "access_expired": status == "expired",
+        "access_active": status in ("active", "password_change_required"),
     }
 
 
@@ -220,6 +262,23 @@ def delete_user(
     current_user: User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
+    """Permanently delete an operator/supervisor account.
+
+    Previously this only flipped `is_active = False` (a soft "deactivate")
+    while GET /users still returned the row, so the user stayed visible in the
+    table and the admin saw the delete "do nothing". It now removes the row
+    for real, after detaching/cleaning up every table that references it, so
+    the delete cannot fail on a foreign-key constraint:
+
+    - audit_logs       -> user_id set to NULL (history is preserved; the log
+                          detail text already contains the username)
+    - checklists       -> the user's personal checklist progress is deleted
+    - notifications    -> notifications addressed to the user are deleted;
+                          notifications they sent keep the message with a
+                          NULL sender
+    - approvals        -> approver_id set to NULL
+    - reports          -> created_by set to NULL
+    """
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
     user = db.query(User).filter(User.id == user_id).first()
@@ -227,8 +286,49 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
     # Protect the fixed admin account
     if user.username.lower() == ADMIN_FIXED_USERNAME.lower():
-        raise HTTPException(status_code=403, detail="Cannot deactivate the fixed admin account.")
-    user.is_active = False
-    db.add(AuditLog(user_id=current_user.id, action="DEACTIVATE_USER", detail=f"Deactivated {user.username}"))
-    db.commit()
-    return {"message": "User deactivated"}
+        raise HTTPException(status_code=403, detail="Cannot delete the fixed admin account.")
+
+    username = user.username
+    role = user.role
+
+    try:
+        # Detach audit history instead of deleting it — the audit trail must
+        # survive the account, and its detail strings already name the user.
+        db.query(AuditLog).filter(AuditLog.user_id == user_id).update(
+            {AuditLog.user_id: None}, synchronize_session=False
+        )
+        db.query(Approval).filter(Approval.approver_id == user_id).update(
+            {Approval.approver_id: None}, synchronize_session=False
+        )
+        db.query(Report).filter(Report.created_by == user_id).update(
+            {Report.created_by: None}, synchronize_session=False
+        )
+        db.query(Notification).filter(Notification.sender_id == user_id).update(
+            {Notification.sender_id: None}, synchronize_session=False
+        )
+        db.query(Notification).filter(Notification.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(Checklist).filter(Checklist.user_id == user_id).delete(
+            synchronize_session=False
+        )
+
+        db.delete(user)
+        db.add(AuditLog(
+            user_id=current_user.id,
+            action="DELETE_USER",
+            detail=f"Admin '{current_user.username}' permanently deleted {role} '{username}'.",
+        ))
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        print(f"[user_routes] Failed to delete user '{username}': {e}")
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"'{username}' is still referenced by other records and could not be "
+                "deleted. Please try again or contact support."
+            ),
+        )
+
+    return {"message": f"User '{username}' deleted.", "deleted_id": user_id, "username": username}

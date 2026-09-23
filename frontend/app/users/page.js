@@ -28,13 +28,39 @@ import { Add, Delete, LockOpen, Lock, ContentCopy, Edit } from "@mui/icons-mater
 import Layout from "../../components/Layout";
 import { userApi, authApi } from "../../lib/api";
 import { parseServerDate } from "../../lib/dateUtils";
+import { useAuth } from "../../context/AuthContext";
 
 const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Marketing", "Change control", "Purchase", "Maintenance", "Quality", "Sales", "QMS"];
 
+// Maps the backend's derived, login-accurate `status` (see
+// backend/routes/user_routes.py:_access_state) to a chip label/colour.
+const STATUS_META = {
+  active: { label: "Active", color: "success" },
+  password_change_required: { label: "Active • Password Pending", color: "warning" },
+  expired: { label: "Access Expired", color: "error" },
+  not_granted: { label: "No Access", color: "default" },
+  pending: { label: "Pending Approval", color: "warning" },
+  rejected: { label: "Rejected", color: "error" },
+  inactive: { label: "Inactive", color: "default" },
+};
+
+function getStatusMeta(user) {
+  if (user?.role === "admin") return { label: "Active (Fixed Admin)", color: "primary" };
+  const key = user?.status;
+  if (key && STATUS_META[key]) return STATUS_META[key];
+  // Fallback for an older backend that doesn't send `status` yet.
+  return user?.is_active
+    ? { label: "Active", color: "success" }
+    : { label: "Inactive", color: "default" };
+}
+
 export default function UsersPage() {
+  const { user: currentUser, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
@@ -43,6 +69,10 @@ export default function UsersPage() {
   const [grantUser, setGrantUser] = useState(null);
   const [grantResult, setGrantResult] = useState(null);
   const [createResult, setCreateResult] = useState(null);
+  // Delete now asks for confirmation and reports the result, so a click can
+  // never silently appear to "do nothing".
+  const [deleteUser, setDeleteUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [grantForm, setGrantForm] = useState({
     duration_hours: 8,
     new_password: "",
@@ -89,11 +119,19 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (id) => {
+    setError("");
+    setSuccess("");
+    setDeleting(true);
     try {
-      await userApi.delete(id);
+      const res = await userApi.delete(id);
+      setSuccess(res.data?.message || "User deleted.");
+      setDeleteUser(null);
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to delete user");
+      setDeleteUser(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -166,14 +204,22 @@ export default function UsersPage() {
             Manage users, grant/revoke access, and control permissions.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>
-          Add User
-        </Button>
+        {isAdmin && (
+          <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>
+            Add User
+          </Button>
+        )}
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
           {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess("")}>
+          {success}
         </Alert>
       )}
 
@@ -250,71 +296,101 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell>{u.department}</TableCell>
                   <TableCell>
-                    <Chip
-                      label={u.is_active ? "Active" : "Inactive"}
-                      color={u.is_active ? "success" : "default"}
-                      size="small"
-                    />
+                    {(() => {
+                      const meta = getStatusMeta(u);
+                      return <Chip label={meta.label} color={meta.color} size="small" />;
+                    })()}
                   </TableCell>
                   <TableCell>
                     {u.role === "admin" ? (
                       <Chip label="Always" color="primary" size="small" />
+                    ) : u.status === "expired" || u.access_expired ? (
+                      <Chip label="Expired" color="error" size="small" />
+                    ) : !u.is_active ? (
+                      <Chip label="Revoked" color="default" size="small" />
                     ) : u.access_granted ? (
                       <Chip label="Granted" color="success" size="small" />
                     ) : (
                       <Chip label="Not Granted" color="default" size="small" />
                     )}
                   </TableCell>
-                  <TableCell>{u.role === "admin" ? "-" : formatDate(u.access_expires_at)}</TableCell>
+                  <TableCell>
+                    {u.role === "admin"
+                      ? "-"
+                      : u.status === "expired" || u.access_expired
+                        ? `Expired ${formatDate(u.access_expires_at)}`
+                        : formatDate(u.access_expires_at)}
+                  </TableCell>
                   <TableCell>
                     <Box sx={{ display: "flex", gap: 0.5 }}>
-                      <Tooltip title="Edit User">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => {
-                            setEditUser(u);
-                            setEditForm({ username: u.username || "", department: u.department || "" });
-                            setEditOpen(true);
-                          }}
-                        >
-                          <Edit />
-                        </IconButton>
-                      </Tooltip>
-                      {u.role !== "admin" && (
+                      {!isAdmin ? (
+                        // Only admins can mutate users; without this guard a
+                        // supervisor saw buttons that always failed with 403,
+                        // which looked like the action "not working".
+                        <Typography variant="caption" color="text.secondary">
+                          View only
+                        </Typography>
+                      ) : (
                         <>
-                          {!u.access_granted ? (
-                            <Tooltip title="Grant Access">
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => {
-                                  setGrantUser(u);
-                                  setGrantForm({ duration_hours: 8, new_password: "" });
-                                  setGrantOpen(true);
-                                }}
-                              >
-                                <LockOpen />
-                              </IconButton>
-                            </Tooltip>
-                          ) : (
-                            <Tooltip title="Revoke Access">
-                              <IconButton
-                                size="small"
-                                color="warning"
-                                onClick={() => handleRevokeAccess(u.id)}
-                              >
-                                <Lock />
-                              </IconButton>
-                            </Tooltip>
+                          <Tooltip title="Edit User">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => {
+                                setEditUser(u);
+                                setEditForm({ username: u.username || "", department: u.department || "" });
+                                setEditOpen(true);
+                              }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          </Tooltip>
+                          {u.role !== "admin" && (
+                            <>
+                              {u.status === "expired" || u.access_expired || !u.access_granted ? (
+                                <Tooltip title="Grant Access">
+                                  <IconButton
+                                    size="small"
+                                    color="success"
+                                    onClick={() => {
+                                      setGrantUser(u);
+                                      setGrantForm({ duration_hours: 8, new_password: "" });
+                                      setGrantOpen(true);
+                                    }}
+                                  >
+                                    <LockOpen />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip title="Revoke Access">
+                                  <IconButton
+                                    size="small"
+                                    color="warning"
+                                    onClick={() => handleRevokeAccess(u.id)}
+                                  >
+                                    <Lock />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </>
                           )}
+                          <Tooltip title="Delete User">
+                            <span>
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setError("");
+                                  setSuccess("");
+                                  setDeleteUser(u);
+                                }}
+                                disabled={u.id === currentUser?.id}
+                              >
+                                <Delete color="error" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
                         </>
                       )}
-                      <Tooltip title="Deactivate">
-                        <IconButton size="small" onClick={() => handleDelete(u.id)}>
-                          <Delete color="error" />
-                        </IconButton>
-                      </Tooltip>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -473,6 +549,42 @@ export default function UsersPage() {
           <Button onClick={() => setGrantOpen(false)}>Cancel</Button>
           <Button variant="contained" color="success" onClick={handleGrantAccess}>
             Grant Access
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deleteUser)}
+        onClose={() => !deleting && setDeleteUser(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Delete color="error" />
+          Delete user permanently?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            <strong>{deleteUser?.full_name}</strong> ({deleteUser?.username}) will be removed
+            from the system and will no longer be able to log in. This cannot be undone.
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
+            Their audit history is kept, but their checklist progress and personal
+            notifications are removed.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteUser(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => handleDelete(deleteUser?.id)}
+            disabled={deleting || !deleteUser}
+          >
+            {deleting ? <CircularProgress size={20} color="inherit" /> : "Delete User"}
           </Button>
         </DialogActions>
       </Dialog>
