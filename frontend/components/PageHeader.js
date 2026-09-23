@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Box, Paper, Typography, useTheme } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 export default function PageHeader({ icon: Icon, title, subtitle }) {
   const theme = useTheme();
