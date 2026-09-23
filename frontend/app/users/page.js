@@ -36,7 +36,9 @@ const DEPARTMENTS = ["Grinding", "Masking", "Spraying", "Production", "HR", "Mar
 // backend/routes/user_routes.py:_access_state) to a chip label/colour.
 const STATUS_META = {
   active: { label: "Active", color: "success" },
-  password_change_required: { label: "Active • Password Pending", color: "warning" },
+  // Users who still must set a password on first login are shown as a normal
+  // Active account (the pending password is an internal detail, not a status).
+  password_change_required: { label: "Active", color: "success" },
   expired: { label: "Access Expired", color: "error" },
   not_granted: { label: "No Access", color: "default" },
   pending: { label: "Pending Approval", color: "warning" },
